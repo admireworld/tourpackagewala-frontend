@@ -1467,7 +1467,7 @@ function excerpt(text, n=220){
 }
 
 function blogFeaturedHTML(post){
-  const link = post.slug ? `blog/${post.slug}.html` : null;
+  const link = post.slug ? blogDetailPath(post) : null;
   return `
   <div class="blog-featured">
     <div class="bf-media" style="background-image:url('${post.imageUrl}')"></div>
@@ -1475,13 +1475,13 @@ function blogFeaturedHTML(post){
       <span class="bf-date">${blogDateLabel(post.date)} · Today's story</span>
       <h3>${post.title}</h3>
       <div class="bf-content">${post.content}</div>
-      ${link ? `<a class="bf-read-link" href="${link}">Read full post &rarr;</a>` : ""}
+      ${link ? `<a class="bf-read-link" href="${link}" data-blog-slug="${post.slug}">Read full post &rarr;</a>` : ""}
     </div>
   </div>`;
 }
 
 function blogCardHTML(post){
-  const link = post.slug ? `blog/${post.slug}.html` : null;
+  const link = post.slug ? blogDetailPath(post) : null;
   return `
   <div class="blog-card">
     <div class="bc-media" style="background-image:url('${post.imageUrl}')"></div>
@@ -1489,7 +1489,7 @@ function blogCardHTML(post){
       <span class="bc-date">${blogDateLabel(post.date)}</span>
       <h4>${post.title}</h4>
       <p>${excerpt(post.content, 110)}</p>
-      ${link ? `<a class="bc-read-link" href="${link}">Read full post &rarr;</a>` : ""}
+      ${link ? `<a class="bc-read-link" href="${link}" data-blog-slug="${post.slug}">Read full post &rarr;</a>` : ""}
     </div>
   </div>`;
 }
@@ -1502,6 +1502,7 @@ async function loadBlog(){
   latestWrap.innerHTML = `<p>Loading today's story...</p>`;
   try{
     const latestData = await apiGet("/api/blog/latest");
+    if(latestData.post && latestData.post.slug) blogDetailStore[latestData.post.slug] = latestData.post; // cache for "Read full post"
     latestWrap.innerHTML = blogFeaturedHTML(latestData.post);
   }catch(err){
     latestWrap.innerHTML = `<p class="field-error">Could not load today's post right now.</p>`;
@@ -1509,11 +1510,14 @@ async function loadBlog(){
 
   try{
     const listData = await apiGet("/api/blog/list");
+    (listData.posts || []).forEach(p => { if(p.slug) blogDetailStore[p.slug] = p; }); // cache for "Read full post"
     const rest = listData.posts.filter(p => !latestWrap.innerHTML.includes(p.title) || true).slice(1);
     listWrap.innerHTML = rest.map(blogCardHTML).join("") || `<p>More stories coming soon.</p>`;
   }catch(err){
     listWrap.innerHTML = `<p class="field-error">Could not load recent posts.</p>`;
   }
+
+  tryOpenBlogFromCurrentUrl(); // in case the page was loaded/deep-linked directly at /blog/<slug>
 }
 
 async function apiGet(path){
@@ -1527,7 +1531,7 @@ async function apiGet(path){
 document.querySelectorAll('[data-tab="blog"]').forEach(el=>{
   el.addEventListener("click", ()=>{ loadBlog(); });
 });
-if (location.hash.slice(1) === "blog") loadBlog();
+if (location.hash.slice(1) === "blog" || parseBlogDetailPath(location.pathname)) loadBlog();
 
 /* ---------- Admin: queue tomorrow's topic (only visible with ?admin=1) ---------- */
 (function initBlogAdmin(){
@@ -1553,6 +1557,165 @@ if (location.hash.slice(1) === "blog") loadBlog();
     }
   });
 })();
+
+/* ================================================================
+   BLOG DETAIL PAGE ("Read full post") — a real full page, not a
+   popup, reusing the exact full-page pattern built for the Package
+   Detail Page below (own SEO-friendly URL, own <title>/meta
+   description, pushed via history.pushState, sharable/bookmarkable).
+   -------------------------------------------------------------------
+   FIX: "Read full post" used to link to a static file
+   (blog/<slug>.html) that nothing in this project ever generates —
+   see blog.js's comments about a "generate-blog-pages.js" build step
+   that was never actually added — so every click 404'd. This gives
+   each post a real client-side route instead (/blog/<slug>), served
+   by the same "?p=" 404.html bounce + vercel.json/_redirects rewrite
+   already used for /package/... deep links, and reuses the post data
+   loadBlog() already fetches — no backend change or build step
+   required. Purely additive; doesn't change loadBlog()'s fetch logic
+   beyond caching each post it already received.
+================================================================ */
+const blogDetailStore = {}; // slug -> full post object, filled by loadBlog() as posts load
+const blogDetailOverlay = document.getElementById("blogDetailOverlay");
+let currentBlogDetail = null;
+let blogDetailUrlPushed = false;
+
+function blogDetailPath(post){
+  return `/blog/${post.slug}`;
+}
+function parseBlogDetailPath(pathname){
+  const m = /^\/blog\/([a-z0-9-]+)$/.exec(pathname || "");
+  return m ? m[1] : null;
+}
+
+function blogDetailHTML(post){
+  return `
+    ${post.imageUrl ? `<img class="blog-detail-hero-img" src="${post.imageUrl}" alt="${post.title}">` : ""}
+    <span class="blog-detail-date">${blogDateLabel(post.date)} &middot; Travel Stories</span>
+    <h2>${post.title}</h2>
+    <div class="pkg-detail-card">
+      <div class="blog-detail-article">${post.content || ""}</div>
+      ${post.researchSourceUrl ? `<p style="margin-top:18px;font-size:0.78rem;color:var(--ink-soft);">Source: <a href="${post.researchSourceUrl}" target="_blank" rel="noopener">${post.researchSourceUrl}</a></p>` : ""}
+    </div>
+    <div class="pkg-detail-card aw-blog-cta" id="blogDetailCta">
+      <div class="aw-blog-cta-text">
+        <h4>Liked this idea? Let's plan it for you.</h4>
+        <p>Tell us your name and number — we'll call you back with a custom itinerary and price.</p>
+      </div>
+      <form class="aw-blog-cta-form" id="blogDetailCtaForm">
+        <input type="text" id="blogDetailCtaName" placeholder="Your name" required>
+        <input type="tel" id="blogDetailCtaPhone" placeholder="10-digit number" maxlength="10" required>
+        <button type="submit">Get callback</button>
+      </form>
+      <p class="aw-form-msg" id="blogDetailCtaMsg" style="width:100%;"></p>
+    </div>
+  `;
+}
+
+function openBlogDetail(post, fromUrl){
+  if(!post) return;
+  currentBlogDetail = post;
+  document.getElementById("blogDetailContent").innerHTML = blogDetailHTML(post);
+  openOverlay(blogDetailOverlay);
+  const modalEl = blogDetailOverlay.querySelector(".modal");
+  if(modalEl) modalEl.scrollTop = 0;
+
+  const path = blogDetailPath(post);
+  setPageSEO(post.metaTitle || `${post.title} | AdmireDworld Travel Blog`, post.metaDescription || excerpt(post.content, 160), path);
+  if(!fromUrl){
+    history.pushState({ blogDetail: true, path }, "", path);
+    blogDetailUrlPushed = true;
+  }
+
+  const ctaForm = document.getElementById("blogDetailCtaForm");
+  if(ctaForm){
+    ctaForm.addEventListener("submit", async (e)=>{
+      e.preventDefault();
+      const name = document.getElementById("blogDetailCtaName").value.trim();
+      const phone = document.getElementById("blogDetailCtaPhone").value.trim();
+      const msgEl = document.getElementById("blogDetailCtaMsg");
+      msgEl.className = "aw-form-msg";
+      if(!name || !/^[0-9]{10}$/.test(phone)){
+        msgEl.textContent = "Please enter your name and a valid 10-digit phone number.";
+        return;
+      }
+      try{
+        await apiPost("/api/leads", { name, phone, source: "blog_cta", interest: post.title, page: path });
+        msgEl.className = "aw-form-msg ok";
+        msgEl.textContent = "Thanks! Our team will call you back shortly.";
+        ctaForm.reset();
+      }catch(err){
+        msgEl.textContent = err.message;
+      }
+    });
+  }
+}
+
+// Restores the default title/meta/canonical and, if WE were the ones who
+// pushed the /blog/... URL, takes the browser back off it — mirrors
+// closePkgDetailPage() below.
+function closeBlogDetailPage(fromPopstate){
+  closeOverlay(blogDetailOverlay);
+  resetPageSEO();
+  currentBlogDetail = null;
+  if(blogDetailUrlPushed && !fromPopstate){
+    blogDetailUrlPushed = false;
+    history.back();
+  }else{
+    blogDetailUrlPushed = false;
+  }
+}
+
+// Deep-link support: if the page loaded directly on a /blog/<slug> URL
+// (shared link, bookmark, search result), open that post as soon as
+// loadBlog() has fetched today's post + the recent list.
+function tryOpenBlogFromCurrentUrl(){
+  const slug = parseBlogDetailPath(location.pathname);
+  if(!slug || currentBlogDetail) return;
+  const post = blogDetailStore[slug];
+  if(post){
+    openBlogDetail(post, true);
+    return;
+  }
+  // Shared/bookmarked link to a post older than the recent-list cache (or
+  // the backend was unreachable) — a friendly fallback instead of a dead end.
+  document.getElementById("blogDetailContent").innerHTML = `
+    <div class="pkg-detail-card" style="text-align:center;">
+      <h2>This story isn't available right now</h2>
+      <p class="modal-sub">It may have moved, or is older than our recent stories list.</p>
+      <a class="btn-primary" href="/#blog">Browse recent stories</a>
+    </div>`;
+  openOverlay(blogDetailOverlay);
+  history.replaceState(null, "", "/#blog");
+}
+
+document.getElementById("blogLatestWrap").addEventListener("click", handleBlogReadClick);
+document.getElementById("blogList").addEventListener("click", handleBlogReadClick);
+function handleBlogReadClick(e){
+  const link = e.target.closest("a.bf-read-link, a.bc-read-link");
+  if(!link) return;
+  if(e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return; // let the browser handle it
+  const post = blogDetailStore[link.dataset.blogSlug];
+  if(!post) return; // fall through to the normal href as a safety net
+  e.preventDefault();
+  openBlogDetail(post);
+}
+
+document.getElementById("blogDetailBackLink").addEventListener("click", (e)=>{
+  e.preventDefault();
+  closeBlogDetailPage();
+});
+
+window.addEventListener("popstate", ()=>{
+  const slug = parseBlogDetailPath(location.pathname);
+  if(slug){
+    const post = blogDetailStore[slug];
+    if(post) openBlogDetail(post, true);
+  }else if(currentBlogDetail){
+    blogDetailUrlPushed = false;
+    closeBlogDetailPage(true);
+  }
+});
 
 /* ================================================================
    INDIA PACKAGES — now backend-driven (reads/writes /api/packages)

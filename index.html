@@ -47,7 +47,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=4">
+<link rel="stylesheet" href="style.css?v=6">
 
 <!-- ============ STRUCTURED DATA (Schema.org) — helps Google Business Profile,
      AI answer engines (AEO) and rich results understand who you are ============
@@ -1052,7 +1052,6 @@
   <div class="panel-hero panel-hero--custom">
     <p class="hero-kicker">Travel Stories</p>
     <h1>Fresh travel inspiration, every day</h1>
-    <p class="panel-sub">A fresh travel post every day, written by AI — for tips, destination ideas and inspiration.</p>
   </div>
   <div class="section">
     <div id="blogLatestWrap"></div>
@@ -1224,6 +1223,25 @@
   </div>
 </div>
 
+<!-- ============ BLOG DETAIL PAGE ("Read full post") ============
+     A real, dedicated page — own URL (/blog/<slug>), own <title> and
+     meta description, pushed via history.pushState — reuses the same
+     full-page topbar/body layout built for the Package Detail Page
+     above (see #pkgDetailOverlay), just with its own overlay id so
+     the two never collide. -->
+<div class="modal-overlay" id="blogDetailOverlay">
+  <div class="modal pkg-detail-page">
+    <div class="pkg-detail-topbar">
+      <a href="/" class="pkg-detail-back" id="blogDetailBackLink">&larr; Back to stories</a>
+      <a href="/" class="logo pkg-detail-brand">
+        <span class="logo-mark">A<span class="logo-dot">.</span></span>
+        <span class="logo-text">AdmireD<em>world</em><br><small>Travel</small></span>
+      </a>
+    </div>
+    <div class="pkg-detail-body" id="blogDetailContent"></div>
+  </div>
+</div>
+
 <!-- ============ PACKAGE ENQUIRY / "BOOK NOW" QUERY FORM ============
      Opened from the package detail page's "Book Now" button. Just name + phone —
      no OTP/login required — submits straight to /api/leads (source: package_enquiry)
@@ -1260,6 +1278,6 @@
      triggers the browser's print/Save-as-PDF dialog. -->
 <div id="cwizPrintArea" class="cwiz-print-area"></div>
 
-<script src="script.js?v=4"></script>
+<script src="script.js?v=5"></script>
 </body>
 </html>

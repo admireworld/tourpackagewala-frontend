@@ -422,6 +422,16 @@ blockquote cite{ font-size:0.82rem; color:var(--teal); font-weight:600; font-sty
   display:none; align-items:center; justify-content:center; z-index:200; padding:20px;
 }
 .modal-overlay.open{ display:flex; }
+
+/* FIX: "Reserve seat" (and login) opened correctly from INSIDE the Fixed
+   Departure / Package detail full-page overlays, but landed invisibly
+   BEHIND them — all `.modal-overlay`s share the same z-index (200), so
+   paint order fell back to DOM order, and #bookingOverlay/#loginOverlay
+   happen to sit earlier in index.html than #fixedDetailOverlay/
+   #pkgDetailOverlay. Giving them a higher z-index makes them always
+   appear on top, regardless of what other overlay is already open,
+   without needing to reorder any markup. */
+#loginOverlay, #bookingOverlay{ z-index:260; }
 .modal{
   background:var(--cloud); border-radius:var(--radius-l); padding:36px;
   max-width:440px; width:100%; box-shadow:var(--shadow-modal); position:relative;
@@ -465,6 +475,26 @@ blockquote cite{ font-size:0.82rem; color:var(--teal); font-weight:600; font-sty
   .pkg-detail-topbar .logo-text small{ display:none; }
   .pkg-detail-body{ padding:20px 16px 48px; }
 }
+
+/* ============ Blog Detail — reuses the Package Detail Page's full-page
+   topbar/body layout (see #pkgDetailOverlay above) under its own overlay
+   id, plus a little typography for the article body itself. ============ */
+#blogDetailOverlay{
+  background:linear-gradient(180deg, #EEF1F8 0%, #F5F6FA 320px, #F5F6FA 100%);
+  padding:0; align-items:flex-start; overflow-y:auto;
+}
+#blogDetailOverlay .pkg-detail-page{
+  max-width:none; width:100%; min-height:100vh; margin:0; padding:0;
+  border-radius:0; box-shadow:none; background:transparent; overflow:visible;
+}
+.blog-detail-hero-img{
+  width:100%; max-height:360px; object-fit:cover; border-radius:var(--radius-l);
+  margin-bottom:14px; box-shadow:var(--shadow-card); display:block;
+}
+.blog-detail-date{ font-size:0.78rem; font-weight:600; color:var(--teal); text-transform:uppercase; letter-spacing:0.06em; }
+.blog-detail-article{ color:var(--ink); line-height:1.75; white-space:pre-line; }
+#blogDetailContent .aw-blog-cta{ margin-top:18px; }
+@media (max-width:600px){ .blog-detail-hero-img{ max-height:220px; } }
 
 .modal-close{
   position:absolute; top:16px; right:16px; font-size:1.4rem; color:var(--ink-soft);
