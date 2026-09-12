@@ -1,13 +1,55 @@
 /* ===========================================================
    AdmireDworld Travel — front-end logic
 
-   SECURE OTP LOGIN (real backend):
-   OTP is generated, hashed, emailed, and verified entirely on
-   the server — this file never sees or handles the OTP value.
-   Point API_BASE_URL at your deployed backend (see
+   OTP LOGIN:
+   OTP is generated, bcrypt-hashed, stored, and verified on the
+   backend exactly as before (5-min expiry, single-use, rate
+   limited). Point API_BASE_URL at your deployed backend (see
    /backend/README-DEPLOY.md for how to deploy it for free).
+
+   CHANGED — OTP DELIVERY NOW VIA EMAILJS (sent from the browser):
+   The backend's server-side SMTP (Gmail/nodemailer) was unreliable
+   on the free hosting tier, so OTP emails weren't reaching
+   customers. /api/send-otp now returns the OTP in its response,
+   and THIS file sends it to the customer's inbox using EmailJS
+   (emailjs.com — free tier, sends straight from the browser, no
+   backend SMTP involved). Fill in the three EMAILJS_* values below
+   after setting up a free EmailJS account — see
+   /frontend/README-EMAILJS.md for exact steps.
 =========================================================== */
 const API_BASE_URL = "https://tourpackagewala-backend.onrender.com";
+
+/* ---------- EmailJS config (for sending the login OTP) ----------
+ * Get these from https://dashboard.emailjs.com after following
+ * /frontend/README-EMAILJS.md — takes about 5 minutes, free tier
+ * covers 200 emails/month which is plenty for OTP logins.
+ */
+const EMAILJS_PUBLIC_KEY  = "YOUR_EMAILJS_PUBLIC_KEY";   // Account → General → Public Key
+const EMAILJS_SERVICE_ID  = "YOUR_EMAILJS_SERVICE_ID";   // Email Services → your service's ID
+const EMAILJS_TEMPLATE_ID = "YOUR_EMAILJS_TEMPLATE_ID";  // Email Templates → your template's ID
+
+if (window.emailjs && EMAILJS_PUBLIC_KEY && !EMAILJS_PUBLIC_KEY.startsWith("YOUR_")) {
+  emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+}
+
+/* Sends the OTP to the customer's inbox via EmailJS. Throws if EmailJS
+ * isn't configured yet (caught by the callers below, shown as a friendly
+ * error) or if EmailJS itself fails to send. */
+async function sendOtpViaEmailJS(toEmail, toName, otp){
+  if (!window.emailjs) {
+    throw new Error("Email service failed to load. Please refresh the page and try again.");
+  }
+  if (!EMAILJS_PUBLIC_KEY || EMAILJS_PUBLIC_KEY.startsWith("YOUR_") ||
+      !EMAILJS_SERVICE_ID || EMAILJS_SERVICE_ID.startsWith("YOUR_") ||
+      !EMAILJS_TEMPLATE_ID || EMAILJS_TEMPLATE_ID.startsWith("YOUR_")) {
+    throw new Error("OTP email isn't set up yet — see /frontend/README-EMAILJS.md to finish configuration.");
+  }
+  await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+    to_email: toEmail,
+    to_name: toName,
+    otp: otp,
+  });
+}
 
 /* ---------- SPA deep-link restore (for static hosts without URL rewrites) ----------
  * If this static site is hosted somewhere that can't rewrite every path to
@@ -742,7 +784,8 @@ document.getElementById("sendOtpBtn").addEventListener("click", async (e)=>{
   btn.disabled = true;
   btn.textContent = "Sending...";
   try{
-    await apiPost("/api/send-otp", { name, phone, email });
+    const data = await apiPost("/api/send-otp", { name, phone, email });
+    await sendOtpViaEmailJS(email, name, data.otp);
     state.pendingEmail = email;
     document.getElementById("otpEmailLabel").textContent = email;
     setLoginStep("stepOtp");
@@ -767,7 +810,8 @@ document.getElementById("resendOtpBtn").addEventListener("click", async (e)=>{
   btn.disabled = true;
   btn.textContent = "Sending...";
   try{
-    await apiPost("/api/send-otp", { name, phone, email });
+    const data = await apiPost("/api/send-otp", { name, phone, email });
+    await sendOtpViaEmailJS(email, name, data.otp);
     showToast(`New OTP sent to ${email}.`, 6000);
   }catch(err){
     showToast(err.message, 6000);
