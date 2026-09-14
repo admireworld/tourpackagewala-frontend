@@ -24,9 +24,9 @@ const API_BASE_URL = "https://tourpackagewala-backend.onrender.com";
  * /frontend/README-EMAILJS.md — takes about 5 minutes, free tier
  * covers 200 emails/month which is plenty for OTP logins.
  */
-const EMAILJS_PUBLIC_KEY  = "YOUR_EMAILJS_PUBLIC_KEY";   // Account → General → Public Key
-const EMAILJS_SERVICE_ID  = "YOUR_EMAILJS_SERVICE_ID";   // Email Services → your service's ID
-const EMAILJS_TEMPLATE_ID = "YOUR_EMAILJS_TEMPLATE_ID";  // Email Templates → your template's ID
+const EMAILJS_PUBLIC_KEY  = "KPnBOycv19y-cCULj";   // Account → General → Public Key
+const EMAILJS_SERVICE_ID  = "service_qmjc6uo";     // Email Services → your service's ID
+const EMAILJS_TEMPLATE_ID = "template_a0ogwoj";    // Email Templates → your template's ID
 
 if (window.emailjs && EMAILJS_PUBLIC_KEY && !EMAILJS_PUBLIC_KEY.startsWith("YOUR_")) {
   emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
