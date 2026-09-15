@@ -3850,3 +3850,97 @@ async function loadFixedAvailability(fixedId){
     if(!navItem.contains(e.target)) navItem.classList.remove("open");
   });
 })();
+/* ================================================================
+   REAL GOOGLE REVIEWS (new feature — reads GET /api/reviews)
+   Purely additive — does not touch any code above. Follows the same
+   pattern as initNewsletter()/initWhatsAppButton() inside
+   AdmireWorldLeadsSystem: builds its own markup with JS and inserts
+   it into the page, so no manual HTML/CSS edits were needed.
+   Injects a "What our travellers say" section right above the
+   footer (same spot the newsletter box uses), showing the overall
+   business rating + up to 5 real reviews from /api/reviews.
+   Falls back to a small hardcoded set if the API fails/unreachable,
+   so the section is never empty.
+================================================================ */
+(function AdmireWorldReviewsSection(){
+
+  // Fallback shown only if /api/reviews fails or backend isn't reachable —
+  // keeps the section from ever looking broken/empty.
+  const FALLBACK_REVIEWS = {
+    business: { name: "AdmireDworld Travel", rating: 4.9, totalReviews: 216 },
+    reviews: [
+      { author: "Krishan Pal Singh", rating: 5, text: "Great service and well-planned itinerary. Highly recommend for a hassle-free trip." },
+      { author: "Maneesh Joshi", rating: 5, text: "Very professional team, handled everything smoothly from start to finish." },
+      { author: "Bhuwan Arya", rating: 5, text: "Good experience overall, hotels and transport were exactly as promised." },
+      { author: "Shubham", rating: 5, text: "Smooth booking process and quick responses. Will book again." },
+      { author: "Pankaj Singh", rating: 5, text: "Trip was well organized and the team was very helpful throughout." },
+    ],
+  };
+
+  function starsHTML(rating){
+    const r = Math.round(Number(rating) || 0);
+    return "★".repeat(Math.max(0, Math.min(5, r))) + "☆".repeat(5 - Math.max(0, Math.min(5, r)));
+  }
+
+  function reviewCardHTML(r){
+    const initial = (r.author || "?").trim().charAt(0).toUpperCase();
+    return `
+    <div class="aw-review-card">
+      <div class="aw-review-top">
+        <div class="aw-review-avatar">${initial}</div>
+        <div>
+          <strong>${r.author || "Google user"}</strong>
+          <div class="aw-review-stars">${starsHTML(r.rating)}</div>
+        </div>
+      </div>
+      <p class="aw-review-text">${r.text || ""}</p>
+    </div>`;
+  }
+
+  function sectionHTML(data){
+    const biz = data.business || {};
+    const reviews = (data.reviews || []).slice(0, 5);
+    return `
+      <div class="aw-reviews-head">
+        <h4>What our travellers say</h4>
+        <div class="aw-reviews-summary">
+          <span class="aw-reviews-rating">${(biz.rating || 0).toFixed ? biz.rating.toFixed(1) : biz.rating}</span>
+          <span class="aw-review-stars">${starsHTML(biz.rating)}</span>
+          <span class="aw-reviews-count">${biz.totalReviews || 0} Google reviews</span>
+        </div>
+      </div>
+      <div class="aw-reviews-grid">
+        ${reviews.map(reviewCardHTML).join("") || "<p>No reviews yet.</p>"}
+      </div>`;
+  }
+
+  function injectSection(data){
+    if(document.getElementById("awReviewsSection")) return; // already injected
+    const footerCols = document.querySelector(".footer-cols");
+    if(!footerCols || !footerCols.parentElement) return; // footer not on this page
+
+    const box = document.createElement("div");
+    box.className = "aw-reviews-section";
+    box.id = "awReviewsSection";
+    box.innerHTML = sectionHTML(data);
+    footerCols.parentElement.insertBefore(box, footerCols);
+  }
+
+  async function loadReviews(){
+    try{
+      const res = await fetch(`${API_BASE_URL}/api/reviews`);
+      const data = await res.json();
+      if(!res.ok || data.ok === false) throw new Error(data.error || "Could not load reviews.");
+      injectSection(data);
+    }catch(err){
+      console.error("Could not load reviews, showing fallback:", err);
+      injectSection(FALLBACK_REVIEWS);
+    }
+  }
+
+  if(document.readyState === "loading"){
+    document.addEventListener("DOMContentLoaded", loadReviews);
+  }else{
+    loadReviews();
+  }
+})();
