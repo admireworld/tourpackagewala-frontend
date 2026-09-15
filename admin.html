@@ -587,11 +587,30 @@ async function loadBlog(){
     const data = await apiGetPublic("/api/blog/list");
     const posts = data.posts || [];
     if(!posts.length){ el.innerHTML = '<div class="empty">No posts yet.</div>'; return; }
-    el.innerHTML = `<table><thead><tr><th>Date</th><th>Title</th><th>Topic</th></tr></thead><tbody>
-      ${posts.map(p=>`<tr><td>${esc(p.date)}</td><td>${esc(p.title)}</td><td>${esc(p.topic)}</td></tr>`).join("")}
+    el.innerHTML = `<table><thead><tr><th>Date</th><th>Title</th><th>Topic</th><th></th></tr></thead><tbody>
+      ${posts.map(p=>{
+        const pid = p.id != null ? p.id : (p._id != null ? p._id : (p.slug != null ? p.slug : p.date));
+        return `<tr>
+          <td>${esc(p.date)}</td>
+          <td>${esc(p.title)}</td>
+          <td>${esc(p.topic)}</td>
+          <td><button class="btn small coral" data-del-blog="${esc(pid)}">Delete</button></td>
+        </tr>`;
+      }).join("")}
       </tbody></table>`;
   }catch(err){ el.innerHTML = `<div class="empty">${esc(err.message)}</div>`; }
 }
+document.addEventListener("click", async (e)=>{
+  const btn = e.target.closest("[data-del-blog]");
+  if(!btn) return;
+  if(!confirm("Delete this blog post? It cannot be restored.")) return;
+  try{
+    await apiSendAdmin(`/api/blog/${encodeURIComponent(btn.dataset.delBlog)}`, "DELETE");
+    showToast("Blog post deleted");
+    loadBlog();
+    loadOverview();
+  }catch(err){ showToast(err.message); }
+});
 async function setBlogTopic(){
   const msg = document.getElementById("blogMsg");
   const topic = document.getElementById("blogTopicInput").value.trim();
