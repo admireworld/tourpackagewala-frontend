@@ -1284,5 +1284,29 @@
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
 <script src="script.js?v=6"></script>
+     <!-- REVIEWS SLIDER FIX -->
+<style>
+#aw-reviews-section{ background:#f8f9ff !important; padding:50px 0 !important; overflow:hidden; width:100%; }
+#aw-reviews-section .reviews-track{ display:flex; gap:20px; width:max-content; animation: aw-scroll 45s linear infinite; }
+#aw-reviews-section:hover .reviews-track{ animation-play-state: paused; }
+#aw-reviews-section .review-card{ min-width:320px; max-width:320px; background:#fff; padding:20px; border-radius:16px; box-shadow:0 8px 24px rgba(0,0,0,0.08); flex-shrink:0; }
+@keyframes aw-scroll{ 0%{ transform:translateX(0); } 100%{ transform:translateX(-50%); } }
+</style>
+<script>
+function sectionHTML(data){
+  const reviews = (data && (data.reviews || data.data)) ? (data.reviews || data.data) : (Array.isArray(data) ? data : []);
+  const list = reviews.length ? reviews : (window.FALLBACK_REVIEWS || []);
+  const card = r => `<div class="review-card"><div style="font-weight:700;">${r.name||'Traveller'}</div><div>★★★★★</div><div style="margin-top:8px;color:#555;font-size:14px;">${r.text||r.message||''}</div></div>`;
+  const cards = list.map(card).join('');
+  return `<div style="max-width:1280px;margin:auto;padding:0 20px;"><h2 style="margin-bottom:18px;">What our travellers say - 4.9 ★★★★★ 216 Google reviews</h2><div style="overflow:hidden;"><div class="reviews-track">${cards}${cards}</div></div></div>`;
+}
+function injectSection(data){
+  const old=document.getElementById('aw-reviews-section'); if(old) old.remove();
+  const box=document.createElement('section'); box.id='aw-reviews-section';
+  box.innerHTML=sectionHTML(data);
+  const footer=document.querySelector('footer');
+  if(footer) footer.parentNode.insertBefore(box, footer);
+}
+</script>
 </body>
 </html>
