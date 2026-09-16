@@ -3915,16 +3915,20 @@ async function loadFixedAvailability(fixedId){
   }
 
   function injectSection(data){
-    if(document.getElementById("awReviewsSection")) return; // already injected
-    const footerCols = document.querySelector(".footer-cols");
-    if(!footerCols || !footerCols.parentElement) return; // footer not on this page
-
-    const box = document.createElement("div");
-    box.className = "aw-reviews-section";
-    box.id = "awReviewsSection";
-    box.innerHTML = sectionHTML(data);
-    footerCols.parentElement.insertBefore(box, footerCols);
+  const old = document.getElementById('aw-reviews-section');
+  if(old) old.remove();
+  const box = document.createElement('section');
+  box.id = 'aw-reviews-section';
+  box.className = 'aw-reviews-section';
+  box.style.cssText = 'background:#f8f9ff;padding:60px 20px;display:block;width:100%;';
+  box.innerHTML = sectionHTML(data);
+  const footer = document.querySelector('footer');
+  if(footer && footer.parentNode){
+    footer.parentNode.insertBefore(box, footer);
+  } else {
+    document.body.appendChild(box);
   }
+}
 
   async function loadReviews(){
     try{
