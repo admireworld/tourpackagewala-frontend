@@ -3898,21 +3898,25 @@ async function loadFixedAvailability(fixedId){
   }
 
   function sectionHTML(data){
-    const biz = data.business || {};
-    const reviews = (data.reviews || []).slice(0, 5);
-    return `
-      <div class="aw-reviews-head">
-        <h4>What our travellers say</h4>
-        <div class="aw-reviews-summary">
-          <span class="aw-reviews-rating">${(biz.rating || 0).toFixed ? biz.rating.toFixed(1) : biz.rating}</span>
-          <span class="aw-review-stars">${starsHTML(biz.rating)}</span>
-          <span class="aw-reviews-count">${biz.totalReviews || 0} Google reviews</span>
-        </div>
+  const biz = data.business || {};
+  const reviews = (data.reviews || []).slice(0, 10);
+  const cards = reviews.map(reviewCardHTML).join('');
+  return `
+    <div class="aw-reviews-head">
+      <h4>What our travellers say</h4>
+      <div class="aw-reviews-summary">
+        <span class="aw-reviews-rating">${(biz.rating||0).toFixed?biz.rating.toFixed(1):biz.rating}</span>
+        <span class="aw-review-stars">${starsHTML(biz.rating)}</span>
+        <span class="aw-reviews-count">${biz.totalReviews||0} Google reviews</span>
       </div>
-      <div class="aw-reviews-grid">
-        ${reviews.map(reviewCardHTML).join("") || "<p>No reviews yet.</p>"}
-      </div>`;
-  }
+    </div>
+    <div style="overflow:hidden">
+      <div class="aw-reviews-track" style="display:flex;gap:20px;width:max-content;animation:aw-scroll 40s linear infinite">
+        ${cards}${cards}
+      </div>
+    </div>
+  `;
+}
 
   function injectSection(data){
   const old = document.getElementById('aw-reviews-section');
