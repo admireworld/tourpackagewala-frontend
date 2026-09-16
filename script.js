@@ -3926,6 +3926,21 @@ async function loadFixedAvailability(fixedId){
   box.className = 'aw-reviews-section';
   box.style.cssText = 'background:#f8f9ff;padding:60px 20px;display:block;width:100%;';
   box.innerHTML = sectionHTML(data);
+  const faq = document.getElementById('siteFAQ') || document.querySelector('#faq');
+if(faq && faq.parentNode){
+  faq.parentNode.insertBefore(box, faq);
+} else {
+  const footer = document.querySelector('footer');
+  if(footer && footer.parentNode){
+    footer.parentNode.insertBefore(box, footer);
+  } else {
+    document.body.appendChild(box);
+  }
+  box.innerHTML = sectionHTML(data);
+  const faq = document.getElementById('siteFAQ') || document.querySelector('#faq');
+if(faq && faq.parentNode){
+  faq.parentNode.insertBefore(box, faq);
+} else {
   const footer = document.querySelector('footer');
   if(footer && footer.parentNode){
     footer.parentNode.insertBefore(box, footer);
@@ -3933,6 +3948,9 @@ async function loadFixedAvailability(fixedId){
     document.body.appendChild(box);
   }
 }
+}
+
+  
 
   async function loadReviews(){
     try{
