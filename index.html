@@ -1294,19 +1294,38 @@
 </style>
 <script>
 function sectionHTML(data){
-  const reviews = (data && (data.reviews || data.data)) ? (data.reviews || data.data) : (Array.isArray(data) ? data : []);
-  const list = reviews.length ? reviews : (window.FALLBACK_REVIEWS || []);
-  const card = r => `<div class="review-card"><div style="font-weight:700;">${r.name||'Traveller'}</div><div>★★★★★</div><div style="margin-top:8px;color:#555;font-size:14px;">${r.text||r.message||''}</div></div>`;
-  const cards = list.map(card).join('');
-  return `<div style="max-width:1280px;margin:auto;padding:0 20px;"><h2 style="margin-bottom:18px;">What our travellers say - 4.9 ★★★★★ 216 Google reviews</h2><div style="overflow:hidden;"><div class="reviews-track">${cards}${cards}</div></div></div>`;
+  const rvs = data?.reviews || data?.data || data || [];
+  const list = rvs.length ? rvs : window.FALLBACK_REVIEWS || [];
+  const cards = list.map(r => {
+    return `<div class="review-card">
+      <b>${r.name||'Traveller'}</b>
+      <div>★★★★★</div>
+      <div style="font-size:14px;color:#555;margin-top:8px;">
+        ${r.text||r.message||''}
+      </div>
+    </div>`;
+  }).join('');
+  return `<div style="max-width:1280px;margin:auto;padding:0 20px;">
+    <h2>What our travellers say - 4.9 ★★★★★</h2>
+    <div style="overflow:hidden;">
+      <div class="reviews-track">${cards}${cards}</div>
+    </div>
+  </div>`;
 }
 function injectSection(data){
-  const old=document.getElementById('aw-reviews-section'); if(old) old.remove();
-  const box=document.createElement('section'); box.id='aw-reviews-section';
+  const old=document.getElementById('aw-reviews-section');
+  if(old) old.remove();
+  const box=document.createElement('section');
+  box.id='aw-reviews-section';
   box.innerHTML=sectionHTML(data);
   const footer=document.querySelector('footer');
   if(footer) footer.parentNode.insertBefore(box, footer);
 }
+setTimeout(()=>{
+  if(window.FALLBACK_REVIEWS){
+    injectSection(window.FALLBACK_REVIEWS);
+  }
+},500);
 </script>
 </body>
 </html>
