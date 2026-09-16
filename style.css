@@ -1520,3 +1520,6 @@ img, video{ max-width:100%; height:auto; }
 @media (max-width:600px){
   .modal, .modal-box, .photo-lightbox-modal{ max-width:94vw; }
 }
+.aw-reviews-track{ display:flex; gap:20px; width:max-content; animation:aw-scroll 40s linear infinite }
+@keyframes aw-scroll{ 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+#aw-reviews-section:hover .aw-reviews-track, .aw-reviews-track:hover{ animation-play-state:paused }
