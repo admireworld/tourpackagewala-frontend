@@ -3970,20 +3970,29 @@ if(faq && faq.parentNode){
     loadReviews();
   }
 })();
-// ===== FOOTER 8 BUTTONS FIX =====
+// ===== FOOTER 8 BUTTONS - FINAL FIX =====
 document.addEventListener('DOMContentLoaded', function(){
   document.querySelectorAll('footer a[data-tab]').forEach(link => {
     link.addEventListener('click', function(e){
       e.preventDefault();
-      const tab = this.getAttribute('data-tab');
-      let done = false;
-      document.querySelectorAll('[data-tab="'+tab+'"]').forEach(btn=>{
-        if(!btn.closest('footer') && !done){
-          btn.click();
-          done = true;
+      const tab = this.dataset.tab.toLowerCase();
+      console.log('Footer clicked:', tab);
+
+      // 1. Header ka asli tab dhoondo (footer wala chhod ke) aur click karo
+      const all = document.querySelectorAll('[data-tab="'+tab+'"]');
+      for(let b of all){
+        if(!b.closest('footer')){
+          console.log('Clicking main button:', b);
+          b.click();
+          return; // top pe scroll mat karo, uska apna page khulne do
         }
-      });
-      window.scrollTo({top:0, behavior:'smooth'});
+      }
+
+      // 2. Agar button na mile to section dhoondo
+      const el = document.getElementById(tab) || document.getElementById('tab-'+tab) || document.getElementById(tab+'-packages');
+      if(el){
+        el.scrollIntoView({behavior:'smooth', block:'start'});
+      }
     });
   });
 });
