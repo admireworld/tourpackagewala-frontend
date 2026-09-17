@@ -1882,6 +1882,144 @@ function setPageSEO(title, description, path){
 }
 function resetPageSEO(){
   setPageSEO(DEFAULT_PAGE_TITLE, DEFAULT_META_DESC, null);
+  // Also clears any package-specific FAQ schema left over from a previously
+  // open package detail page — see pkgFaqSchemaJSON()/#pkgFaqSchemaTag below.
+  const faqSchemaTag = document.getElementById("pkgFaqSchemaTag");
+  if(faqSchemaTag) faqSchemaTag.textContent = "null";
+}
+
+/* ================================================================
+   PACKAGE-PAGE FAQ (AEO) — dynamic, per-package questions + answers
+   -------------------------------------------------------------------
+   NEW/ADDITIVE — does not change pkgDetailHTML() or any existing
+   package-detail markup above. Generates a small, honest FAQ (what's
+   included, duration, places covered, price, best time to visit,
+   hotel, transport, honeymoon-suitability) purely from THIS package's
+   own data (p.tag/loc/price/inclusions/exclusions/hotelCategory/cat
+   etc.) — never invented facts. Every answer below either comes
+   straight from the package record or is phrased as general,
+   non-destination-specific seasonal guidance with a caveat to confirm
+   exact dates with the travel team.
+
+   Mirrored (kept in sync on purpose) in middleware.js's
+   buildPkgFaqData()/buildPkgFaqHTML()/buildPkgFaqSchema() — that file
+   pre-renders the SAME questions/answers into the raw HTML served to
+   crawlers/bots that don't run JavaScript, so the FAQ is crawlable
+   without waiting on this script. If you change the wording or add a
+   question here, mirror it there too.
+================================================================ */
+function escapeHtml(str){
+  return String(str || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+// General (non-destination-specific) seasonal guidance by package category —
+// broad, widely-true travel knowledge, not a claim about any one place's
+// exact climate, and always paired with a caveat to confirm with the team.
+const PKG_FAQ_BEST_TIME_BY_CAT = {
+  hills: (d) => `Hill destinations like ${d} are generally most pleasant between March–June and September–November; the monsoon months (July–August) can bring heavy rain and landslide risk in mountain areas.`,
+  offbeat: (d) => `${d} is generally best visited between October and April, avoiding the monsoon months (June–September).`,
+  heritage: (d) => `${d} is generally best visited between October and March, avoiding the peak summer heat (April–June).`,
+  beach: (d) => `Beach destinations like ${d} are usually best visited between October and March, when the weather is cooler and drier; the monsoon (June–September) is best avoided.`,
+  city: (d) => `${d} is largely a year-round destination; many travellers prefer the cooler months for outdoor sightseeing.`,
+  scenic: (d) => `${d} is popular in summer (May–September) for greenery and outdoor activities, and in winter (December–February) for snow and winter-sport itineraries.`,
+  honeymoon: (d) => `${d} is generally driest and most pleasant from November to April.`,
+};
+
+// Builds the FAQ question/answer pairs for ONE package, using only that
+// package's own data. Shared shape between the visible HTML and the
+// FAQPage JSON-LD below, so what's marked up always matches what's shown.
+function pkgFaqData(p){
+  const name = p.name || "This package";
+  const places = String(p.loc || "").split("·").map(s => s.trim()).filter(Boolean);
+  const destLabel = places[0] || String(p.destination || "").split(",")[0].trim() || name;
+  const placesText = places.length ? places.join(", ") : (p.destination || destLabel);
+
+  const durMatch = /(\d+)\s*D\s*\/?\s*(\d+)\s*N/i.exec(p.tag || "");
+  const durationText = durMatch ? `${durMatch[1]} days and ${durMatch[2]} nights` : (p.tag || "a few days");
+
+  const hasDiscount = p.discountPrice && p.discountPrice < p.price;
+  const priceNow = hasDiscount ? p.discountPrice : p.price;
+  const priceText = priceNow
+    ? `${money(priceNow)} per person${hasDiscount ? ` (discounted from ${money(p.price)})` : ""}`
+    : "available on request — contact our travel team for a quote";
+
+  const inclusions = Array.isArray(p.inclusions) ? p.inclusions : [];
+  const inclusionsText = inclusions.length
+    ? inclusions.join(", ")
+    : "hotel stay, breakfast and transfers as per the itinerary";
+
+  const hasHotelInInclusions = inclusions.some(i => /hotel|stay|houseboat|resort|villa/i.test(i));
+  const hotelBit = p.hotelName
+    ? `at ${p.hotelName} (${p.hotelCategory || "quality"} category)`
+    : `in a ${p.hotelCategory || "3-star"} category hotel`;
+  const hotelAnswer = (hasHotelInInclusions || p.hotelCategory || p.hotelName)
+    ? `Yes, accommodation is included, ${hotelBit}, for the full duration of the trip. The exact hotel/houseboat may vary based on availability at the time of travel.`
+    : `Please check with our travel team — accommodation details for this package are confirmed at the time of booking.`;
+
+  const hasTransferInInclusions = inclusions.some(i => /transfer|cab|transport|pickup|drop/i.test(i));
+  const transportAnswer = hasTransferInInclusions
+    ? `Yes, airport/station transfers and sightseeing transport by private cab are included, as listed in this package's inclusions.`
+    : `Local transfers are not listed in this package's inclusions — please confirm transport arrangements with our travel team before booking.`;
+
+  const isHoneymoon = p.cat === "honeymoon"
+    || /honeymoon/i.test(p.tag || "")
+    || /honeymoon|romantic/i.test(p.desc || "")
+    || /honeymoon/i.test(p.name || "");
+  const honeymoonAnswer = isHoneymoon
+    ? `Yes, ${name} is designed as a honeymoon-friendly itinerary, with a pace and set of experiences well suited to couples. Let our team know it's a honeymoon trip and we'll arrange romantic touches like a candlelight dinner or room upgrade where available.`
+    : `${name} is a general holiday itinerary rather than a dedicated honeymoon package, but it can be customized for couples — mention it's a honeymoon trip while enquiring and we'll suggest romantic add-ons and room upgrades where available.`;
+
+  const bestTimeFn = PKG_FAQ_BEST_TIME_BY_CAT[p.cat];
+  const bestTimeAnswer = (bestTimeFn ? bestTimeFn(destLabel) : `The best time to visit ${destLabel} varies by season.`)
+    + ` Speak to our travel team for a month-wise recommendation based on your exact travel dates.`;
+
+  return [
+    { q: `What is included in the ${name} package?`, a: `This package includes: ${inclusionsText}.` },
+    { q: `How many days do I need for the ${destLabel} trip?`, a: `${name} is a ${durationText} itinerary${places.length ? ` covering ${placesText}` : ""}.` },
+    { q: `Which places are covered in the ${name} package?`, a: places.length ? `This package covers ${placesText}.` : `This package covers ${p.destination || destLabel}.` },
+    { q: `What is the price of the ${name} package?`, a: `The ${name} package is priced at ${priceText}. Final pricing may vary based on travel dates, number of travellers and any customization.` },
+    { q: `What is the best time to visit ${destLabel}?`, a: bestTimeAnswer },
+    { q: `Is hotel accommodation included in this package?`, a: hotelAnswer },
+    { q: `Is transportation included in this package?`, a: transportAnswer },
+    { q: `Is the ${name} package suitable for a honeymoon?`, a: honeymoonAnswer },
+  ];
+}
+
+// Plain, always-visible <h2>/<h3>/<p> markup — never an accordion, so the
+// full question + answer text sits in the normal DOM for any crawler,
+// including ones (many AI bots) that never execute JavaScript at all.
+function pkgFaqHTML(p){
+  const faqs = pkgFaqData(p);
+  return `
+    <section class="pkg-faq-section" aria-labelledby="pkgFaqHeading">
+      <h2 id="pkgFaqHeading">Frequently Asked Questions</h2>
+      ${faqs.map(f => `
+        <div class="pkg-faq-item">
+          <h3>${escapeHtml(f.q)}</h3>
+          <p>${escapeHtml(f.a)}</p>
+        </div>`).join("")}
+    </section>
+  `;
+}
+
+// Same questions/answers as pkgFaqHTML() above, as FAQPage JSON-LD — kept
+// in lockstep with the visible section so the markup never claims content
+// that isn't actually on the page (see #pkgFaqSchemaTag in index.html).
+function pkgFaqSchemaJSON(p){
+  const faqs = pkgFaqData(p);
+  return JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": faqs.map(f => ({
+      "@type": "Question",
+      "name": f.q,
+      "acceptedAnswer": { "@type": "Answer", "text": f.a },
+    })),
+  });
 }
 
 function pkgDetailHTML(p){
@@ -1891,7 +2029,7 @@ function pkgDetailHTML(p){
       <div class="pkg-detail-head">
         ${p.imageUrl ? `<img src="${p.imageUrl}" alt="${p.name}">` : photoImgHTML(`${p.name}, ${p.loc}`, p.name, 280, 200)}
         <div>
-          <h2>${p.name}</h2>
+          <h1>${p.name}${p.tag ? ` – ${p.tag}` : ""}</h1>
           <p class="pkg-loc">${p.loc}</p>
           <div class="pkg-detail-chips">
             <span class="pkg-detail-chip">${p.tag}</span>
@@ -1957,13 +2095,18 @@ async function openPkgDetail(id, endpoint, fromUrl){
   const typeLabel = type === "india" ? "India" : "International";
   currentPkgDetail = { type, endpoint, pkg: full };
 
-  document.getElementById("pkgDetailContent").innerHTML = pkgDetailHTML(full);
+  // FAQ section (see pkgFaqHTML/pkgFaqSchemaJSON above) is appended after
+  // the existing detail markup — purely additive, pkgDetailHTML() itself
+  // is untouched.
+  document.getElementById("pkgDetailContent").innerHTML = pkgDetailHTML(full) + pkgFaqHTML(full);
   openOverlay(pkgDetailOverlay);
   const modalEl = pkgDetailOverlay.querySelector(".modal");
   if(modalEl) modalEl.scrollTop = 0;
 
   const path = pkgDetailPath(type, full);
   setPageSEO(pkgSeoTitle(full, typeLabel), pkgSeoDescription(full), path);
+  const faqSchemaTag = document.getElementById("pkgFaqSchemaTag");
+  if(faqSchemaTag) faqSchemaTag.textContent = pkgFaqSchemaJSON(full);
   if(!fromUrl){
     history.pushState({ pkgDetail: true, path }, "", path);
     pkgDetailUrlPushed = true;

@@ -152,6 +152,15 @@
   ]
 }
 </script>
+
+<!-- Per-package FAQ structured data (AEO) — stays "null" (no FAQPage here)
+     on every normal page, including the homepage, so it never duplicates
+     the general site FAQ schema above. Populated with THIS package's own
+     questions/answers only on a /package/... page: client-side by
+     script.js (pkgFaqSchemaJSON(), for in-app SPA navigation) and,
+     for crawlers/bots that don't run JavaScript, server-side by
+     middleware.js (buildPkgFaqSchema()) before the HTML is ever sent. -->
+<script type="application/ld+json" id="pkgFaqSchemaTag">null</script>
 </head>
 <body>
 

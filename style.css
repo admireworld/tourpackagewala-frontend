@@ -620,7 +620,12 @@ blockquote cite{ font-size:0.82rem; color:var(--teal); font-weight:600; font-sty
 }
 .pkg-detail-hero .pkg-detail-head,
 .pkg-detail-hero .pkg-detail-price{ position:relative; z-index:1; }
-.pkg-detail-hero h2{ color:var(--cloud); }
+/* NOTE (SEO fix): the package name heading inside .pkg-detail-hero is now
+   rendered as a real <h1> (see pkgDetailHTML() in script.js) instead of
+   <h2>, so every package page has exactly one relevant H1 for search
+   engines. font-size is pinned to the browser's previous default h2 size
+   (1.5em) so nothing here looks any different than before. */
+.pkg-detail-hero h1{ color:var(--cloud); font-size:1.5em; }
 .pkg-detail-hero .pkg-loc{ color:rgba(255,255,255,0.8); }
 .pkg-detail-head{ display:flex; gap:18px; align-items:flex-start; margin-bottom:14px; }
 .pkg-detail-head img{
@@ -654,6 +659,21 @@ blockquote cite{ font-size:0.82rem; color:var(--teal); font-weight:600; font-sty
 .pkg-inc-exc ul{ margin:8px 0 0; padding-left:18px; color:var(--ink-soft); font-size:0.92rem; }
 .pkg-inc-exc h4{ margin:0; color:var(--navy); font-size:0.95rem; }
 @media (max-width:600px){ .pkg-inc-exc{ grid-template-columns:1fr; } }
+
+/* ---------- Package-page FAQ (AEO) ----------
+   Always-visible <h2>/<h3>/<p> section (never an accordion/collapsed
+   element), so the full question + answer text is plain, crawlable HTML
+   for any bot — including AI crawlers that don't execute JavaScript.
+   See pkgFaqHTML() in script.js and buildPkgFaqHTML() in middleware.js. */
+.pkg-faq-section{
+  background:var(--cloud); border:1px solid var(--line); border-radius:var(--radius-l);
+  box-shadow:var(--shadow-card); padding:28px; margin-top:20px;
+}
+.pkg-faq-section h2{ margin:0 0 6px; font-size:1.3rem; }
+.pkg-faq-item{ padding:14px 0; border-bottom:1px dashed var(--line); }
+.pkg-faq-item:last-child{ border-bottom:none; padding-bottom:0; }
+.pkg-faq-item h3{ margin:0 0 6px; font-size:0.98rem; color:var(--navy); }
+.pkg-faq-item p{ margin:0; color:var(--ink-soft); font-size:0.92rem; line-height:1.6; max-width:none; }
 
 /* ===========================================================
    FIXED DEPARTURE — full detail page (gallery / price box /
