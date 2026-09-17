@@ -3970,36 +3970,20 @@ if(faq && faq.parentNode){
     loadReviews();
   }
 })();
-
-// ===== FOOTER EXPLORE BUTTONS FIX - 8 BUTTONS =====
+// ===== FOOTER 8 BUTTONS FIX =====
 document.addEventListener('DOMContentLoaded', function(){
-  function handleFooterTab(tab){
-    tab = tab.toLowerCase();
-    // mapping - tere tabs ka naam
-    const map = {
-      'india': 'india',
-      'international': 'international',
-      'fixed': 'fixed',
-      'customize': 'customize',
-      'wedding': 'wedding',
-      'refer': 'refer',
-      'mybookings': 'mybookings',
-      'blog': 'blog'
-    };
-    const targetName = map[tab] || tab;
-    const target = document.getElementById('tab-'+targetName) || document.querySelector(`[data-panel="${targetName}"]`) || document.getElementById(targetName);
-    if(target){
-      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-      target.classList.add('active');
-      target.scrollIntoView({behavior:'smooth'});
-      setTimeout(()=> window.scrollTo({top: target.offsetTop - 80, behavior:'smooth'}), 100);
-    }
-  }
-
-  document.querySelectorAll('footer a[data-tab],.footer-links a[data-tab]').forEach(link => {
+  document.querySelectorAll('footer a[data-tab]').forEach(link => {
     link.addEventListener('click', function(e){
       e.preventDefault();
-      handleFooterTab(this.getAttribute('data-tab'));
+      const tab = this.getAttribute('data-tab');
+      let done = false;
+      document.querySelectorAll('[data-tab="'+tab+'"]').forEach(btn=>{
+        if(!btn.closest('footer') && !done){
+          btn.click();
+          done = true;
+        }
+      });
+      window.scrollTo({top:0, behavior:'smooth'});
     });
   });
 });
