@@ -3915,40 +3915,24 @@ async function loadFixedAvailability(fixedId){
   }
 
   function injectSection(data){
-  const old = document.getElementById('aw-reviews-section');
-  if(old) old.remove();
-  const box = document.createElement('section');
-  box.id = 'aw-reviews-section';
-  box.className = 'aw-reviews-section';
-  box.style.cssText = 'background:#f8f9ff;padding:60px 20px;display:block;width:100%;';
-  box.innerHTML = sectionHTML(data);
-  const faq = document.getElementById('siteFAQ');
-  if(faq && faq.parentNode){
-    faq.parentNode.insertBefore(box, faq);
-  } else {
+  try{
+    const old = document.getElementById('aw-reviews-section');
+    if(old) old.remove();
+    const box = document.createElement('section');
+    box.id = 'aw-reviews-section';
+    box.className = 'aw-reviews-section';
+    box.style.cssText = 'background:#f8f9ff;padding:60px 20px;display:block;width:100%;';
+    box.innerHTML = sectionHTML(data);
+    const faq = document.getElementById('siteFAQ');
     const footer = document.querySelector('footer');
-    if(footer && footer.parentNode){
+    if(faq && faq.parentNode){
+      faq.parentNode.insertBefore(box, faq);
+    } else if(footer && footer.parentNode){
       footer.parentNode.insertBefore(box, footer);
-  } else {
-    document.body.appendChild(box);
+    } else {
+      document.body.appendChild(box);
+    }
+  } catch(e){
+    console.log('reviews skip', e);
   }
 }
-
-  async function loadReviews(){
-    try{
-      const res = await fetch(`${API_BASE_URL}/api/reviews`);
-      const data = await res.json();
-      if(!res.ok || data.ok === false) throw new Error(data.error || "Could not load reviews.");
-      injectSection(data);
-    }catch(err){
-      console.error("Could not load reviews, showing fallback:", err);
-      injectSection(FALLBACK_REVIEWS);
-    }
-  }
-
-  if(document.readyState === "loading"){
-    document.addEventListener("DOMContentLoaded", loadReviews);
-  }else{
-    loadReviews();
-  }
-})();
