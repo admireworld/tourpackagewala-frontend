@@ -3970,33 +3970,3 @@ if(faq && faq.parentNode){
     loadReviews();
   }
 })();
-// ===== FOOTER 8 BUTTONS - FINAL 100% WORKING =====
-document.addEventListener('DOMContentLoaded', function(){
-  document.querySelectorAll('footer a[data-tab]').forEach(link => {
-    link.addEventListener('click', function(e){
-      e.preventDefault();
-      const tab = this.getAttribute('data-tab');
-      // India / International dropdown kholo
-      if(tab === 'india' || tab === 'international'){
-        const menu = document.getElementById('holidayMenu');
-        const item = document.getElementById('holidayNavItem');
-        if(menu) menu.style.display = 'block';
-        if(item) item.classList.add('open');
-      }
-      const mainBtn = document.querySelector(`#mainNav [data-tab="${tab}"]`);
-      if(mainBtn){
-        mainBtn.click();
-        window.scrollTo({top:0, behavior:'smooth'});
-        return;
-      }
-      if(tab === 'blog'){
-        const blogSec = document.getElementById('blog');
-        if(blogSec){
-          document.querySelectorAll('.tab-panel, main > section').forEach(s=>s.style.display='none');
-          blogSec.style.display='block';
-          window.scrollTo({top:0, behavior:'smooth'});
-        }
-      }
-    });
-  });
-});
