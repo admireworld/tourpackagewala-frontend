@@ -7,20 +7,20 @@
 =========================================================== */
 
 :root{
-  --navy:#2B3968;
-  --navy-deep:#1A2340;
-  --teal:#3D5FA8;
-  --teal-deep:#2C4680;
-  --amber:#E3A23E;
-  --amber-deep:#C98620;
-  --coral:#D14B3D;
-  --coral-deep:#B23A2E;
-  --sand:#E7EAF1;
+  --navy:#2B1F3D;
+  --navy-deep:#170F22;
+  --teal:#7A6291;
+  --teal-deep:#54406B;
+  --amber:#D9A94E;
+  --amber-deep:#B9862A;
+  --coral:#D4785A;
+  --coral-deep:#B35E42;
+  --sand:#EDE7F1;
   --sand-soft:#FFFFFF;
-  --ink:#1D2433;
-  --ink-soft:#5B6472;
+  --ink:#241A33;
+  --ink-soft:#6B5F79;
   --cloud:#FFFFFF;
-  --line:#E2E5EB;
+  --line:#E5E0EA;
 
   --serif: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -67,7 +67,7 @@ em{ font-style:italic; color:var(--amber-deep); }
   position:sticky; top:0; z-index:60;
   background:linear-gradient(90deg,var(--navy) 0%,var(--navy-deep) 100%);
   border-bottom:1px solid rgba(255,255,255,0.08);
-  box-shadow:0 2px 16px rgba(15,20,30,0.18);
+  box-shadow:0 2px 16px rgba(15,20,30,0.25);
 }
 .header-inner{
   max-width:1240px; margin:0 auto; padding:12px 28px;
@@ -171,7 +171,7 @@ em{ font-style:italic; color:var(--amber-deep); }
 @keyframes fadeIn{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
 
 /* ============ Hero (home) ============ */
-.hero{ position:relative; overflow:hidden; color:var(--cloud); }
+.hero{ position:relative; overflow:hidden; color:var(--cloud); background:var(--navy-deep); }
 .hero-art{ position:absolute; inset:0; z-index:0; }
 .hero-art svg{ width:100%; height:100%; display:block; }
 .hero-content{
@@ -190,13 +190,13 @@ em{ font-style:italic; color:var(--amber-deep); }
   font-size:clamp(2.4rem, 5vw, 4rem); color:var(--cloud); max-width:16ch;
   margin-bottom:18px;
 }
-.hero-title em{ color:#FCE2B3; }
+.hero-title em{ color:var(--amber); }
 .hero-sub{ color:rgba(255,255,255,0.85); max-width:52ch; font-size:1.08rem; }
 .hero-trust-line{
   display:flex; flex-direction:column; gap:2px; margin-top:14px; font-size:0.85rem; font-weight:500;
   color:rgba(255,255,255,0.92); letter-spacing:0.01em;
 }
-.hero-trust-line strong{ font-size:1rem; font-weight:800; color:#FCE2B3; }
+.hero-trust-line strong{ font-size:1rem; font-weight:800; color:var(--amber); }
 .hero-trust-sub{ font-size:0.78rem; font-weight:500; color:rgba(255,255,255,0.8); }
 
 .hero-search{
