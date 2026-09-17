@@ -3970,28 +3970,32 @@ if(faq && faq.parentNode){
     loadReviews();
   }
 })();
-// ===== FOOTER 8 BUTTONS - FINAL FIX =====
+// ===== FOOTER 8 BUTTONS - FINAL 100% WORKING =====
 document.addEventListener('DOMContentLoaded', function(){
   document.querySelectorAll('footer a[data-tab]').forEach(link => {
     link.addEventListener('click', function(e){
       e.preventDefault();
-      const tab = this.dataset.tab.toLowerCase();
-      console.log('Footer clicked:', tab);
-
-      // 1. Header ka asli tab dhoondo (footer wala chhod ke) aur click karo
-      const all = document.querySelectorAll('[data-tab="'+tab+'"]');
-      for(let b of all){
-        if(!b.closest('footer')){
-          console.log('Clicking main button:', b);
-          b.click();
-          return; // top pe scroll mat karo, uska apna page khulne do
-        }
+      const tab = this.getAttribute('data-tab');
+      // India / International dropdown kholo
+      if(tab === 'india' || tab === 'international'){
+        const menu = document.getElementById('holidayMenu');
+        const item = document.getElementById('holidayNavItem');
+        if(menu) menu.style.display = 'block';
+        if(item) item.classList.add('open');
       }
-
-      // 2. Agar button na mile to section dhoondo
-      const el = document.getElementById(tab) || document.getElementById('tab-'+tab) || document.getElementById(tab+'-packages');
-      if(el){
-        el.scrollIntoView({behavior:'smooth', block:'start'});
+      const mainBtn = document.querySelector(`#mainNav [data-tab="${tab}"]`);
+      if(mainBtn){
+        mainBtn.click();
+        window.scrollTo({top:0, behavior:'smooth'});
+        return;
+      }
+      if(tab === 'blog'){
+        const blogSec = document.getElementById('blog');
+        if(blogSec){
+          document.querySelectorAll('.tab-panel, main > section').forEach(s=>s.style.display='none');
+          blogSec.style.display='block';
+          window.scrollTo({top:0, behavior:'smooth'});
+        }
       }
     });
   });
