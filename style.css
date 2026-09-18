@@ -1045,6 +1045,10 @@ blockquote cite{ font-size:0.82rem; color:var(--teal); font-weight:600; font-sty
 }
 .refer-status-note--pending{ background:var(--sand-soft); border:1px dashed var(--line); color:var(--ink-soft); }
 .refer-status-note--revoked{ background:#FBE0DB; color:#8A362B; border:1px solid #F3C4BB; }
+/* Additive: shown to an approved partner who applied without logging in —
+   tells them to log in to see their live link/earnings. Doesn't change
+   any rule above. */
+.refer-status-note--approved-anon{ background:#E4F3EC; border:1px solid #BEE3D1; color:#1F6B45; }
 
 /* ===========================================================
    BOOKINGS ADMIN (referral reward trigger) — new, additive

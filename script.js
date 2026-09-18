@@ -2749,6 +2749,8 @@ function referEarningRowHTML(e){
 // why they want to promote us); only THEN does a "pending" request get
 // created. The affiliate link is generated only once an admin approves
 // it from the dashboard (Pending -> Approved -> Affiliate Active).
+const REFER_ANON_EMAIL_KEY = "adw_referapp_email";
+
 async function loadReferUI(){
   const loggedOutBox = document.getElementById("referLoggedOut");
   const loggedInBox = document.getElementById("referLoggedIn");
@@ -2757,23 +2759,43 @@ async function loadReferUI(){
   const pendingNote = document.getElementById("referPendingNote");
   const revokedNote = document.getElementById("referRevokedNote");
   const approvedBox = document.getElementById("referApprovedBox");
+  const approvedAnonNote = document.getElementById("referApprovedAnonNote");
   if(!loggedOutBox || !loggedInBox) return;
 
-  if(!state.user || !state.token){
-    loggedOutBox.style.display = "block";
-    loggedInBox.style.display = "none";
-    if(earningsBox) earningsBox.style.display = "none";
-    return;
-  }
-  loggedOutBox.style.display = "none";
+  // The application form itself no longer requires logging in first —
+  // it's shown directly so any visitor can fill it out. Logging in is
+  // only needed afterwards, to view the live referral link/earnings
+  // once an admin has approved the application.
   loggedInBox.style.display = "block";
+  loggedOutBox.style.display = state.user && state.token ? "none" : "block";
 
   function showStatus(which){
     applyBox.style.display = which === "apply" ? "block" : "none";
     pendingNote.style.display = which === "pending" ? "block" : "none";
     revokedNote.style.display = which === "revoked" ? "block" : "none";
     approvedBox.style.display = which === "approved" ? "block" : "none";
+    if(approvedAnonNote) approvedAnonNote.style.display = which === "approved-anon" ? "block" : "none";
     if(earningsBox) earningsBox.style.display = which === "approved" ? "block" : "none";
+  }
+
+  // Not logged in: check status by email (public, no login needed) —
+  // only if this browser has already submitted an application before.
+  // Otherwise just show the empty application form.
+  if(!state.user || !state.token){
+    const savedEmail = localStorage.getItem(REFER_ANON_EMAIL_KEY);
+    if(!savedEmail){
+      showStatus("apply");
+      return;
+    }
+    try{
+      const data = await apiPost("/api/refer/my-code", { email: savedEmail });
+      if(data.approved) showStatus("approved-anon");
+      else if(data.status === "revoked") showStatus("revoked");
+      else showStatus("pending");
+    }catch{
+      showStatus("apply");
+    }
+    return;
   }
 
   try{
@@ -2785,10 +2807,12 @@ async function loadReferUI(){
     if(!res.ok) throw new Error(data.error || "Could not load your referral status.");
 
     if(!data.requested){
-      // Never applied yet -> show the application form. Prefill name from account.
+      // Never applied yet -> show the application form. Prefill name/email from account.
       showStatus("apply");
       const nameField = document.getElementById("raName");
       if(nameField && !nameField.value) nameField.value = state.user.name || "";
+      const emailField = document.getElementById("raEmail");
+      if(emailField && !emailField.value) emailField.value = state.user.email || "";
       return;
     }
 
@@ -2840,15 +2864,24 @@ document.getElementById("referLoginBtn")?.addEventListener("click", ()=>{
   resetLoginModal();
   openOverlay(loginOverlay);
 });
+document.getElementById("referApprovedAnonLoginBtn")?.addEventListener("click", ()=>{
+  resetLoginModal();
+  openOverlay(loginOverlay);
+});
 
 // Submitting the application form: creates a "pending" request only.
 // The affiliate link is NOT generated here — only once an admin approves
 // it from the Admin Dashboard.
 document.getElementById("referApplyForm")?.addEventListener("submit", async (e)=>{
   e.preventDefault();
-  if(!state.user || !state.token){ return; }
+  // Works whether or not the visitor is logged in: logged-in users' email
+  // comes from their account (field is prefilled); a not-logged-in visitor
+  // types their own email into the form — the backend endpoint has always
+  // accepted this without requiring a login token.
+  const emailFieldVal = document.getElementById("raEmail")?.value.trim();
+  const email = (state.user && state.token) ? state.user.email : emailFieldVal;
   const payload = {
-    email: state.user.email,
+    email,
     name: document.getElementById("raName").value.trim(),
     phone: document.getElementById("raPhone").value.trim(),
     socialProfile: document.getElementById("raSocial").value.trim(),
@@ -2857,12 +2890,19 @@ document.getElementById("referApplyForm")?.addEventListener("submit", async (e)=
     audienceLocation: document.getElementById("raLocation").value.trim(),
     reason: document.getElementById("raReason").value.trim(),
   };
+  if(!email){
+    showToast("Please enter your email.");
+    return;
+  }
   if(!payload.name || !payload.socialProfile || !payload.reason){
     showToast("Please fill in your name, Instagram/YouTube profile, and why you want to promote us.");
     return;
   }
   try{
     await apiPost("/api/refer/apply-partner", payload);
+    if(!(state.user && state.token)){
+      localStorage.setItem(REFER_ANON_EMAIL_KEY, email);
+    }
     showToast("Application submitted! Our team will review it shortly.", 6000);
     loadReferUI();
   }catch(err){
@@ -2874,6 +2914,10 @@ document.getElementById("referApplyForm")?.addEventListener("submit", async (e)=
 document.getElementById("referReapplyBtn")?.addEventListener("click", ()=>{
   document.getElementById("referApplyBox").style.display = "block";
   document.getElementById("referRevokedNote").style.display = "none";
+  const emailField = document.getElementById("raEmail");
+  if(emailField && !(state.user && state.token)){
+    emailField.value = localStorage.getItem(REFER_ANON_EMAIL_KEY) || "";
+  }
 });
 
 // Apply a stored referral code once, right after a successful OTP verification.

@@ -954,21 +954,21 @@
   <div class="panel-hero panel-hero--refer">
     <p class="hero-kicker">Refer &amp; Earn</p>
     <h1>Earn Rewards by Referring Travel Packages to Friends &amp; Family</h1>
-    
   </div>
   <div class="section">
-    <div class="refer-box" id="referLoggedOut">
-      <h3>Log in to become a referral partner</h3>
-      <p>It's free — log in, then fill out a short application for our team to review.</p>
+    <div class="refer-box" id="referLoggedOut" style="display:none;">
+      <h3>Already applied and approved?</h3>
+      <p>Log in with the same email to see your live referral link, commission % and earnings.</p>
       <button class="btn-primary" id="referLoginBtn">Log in</button>
     </div>
 
-    <div class="refer-box" id="referLoggedIn" style="display:none;">
+    <div class="refer-box" id="referLoggedIn">
       <h3>Your referral partner status</h3>
 
       <!-- Application form — shown only before anything has been submitted yet.
-           Submitting this does NOT generate a working affiliate link; it only
-           creates a "pending" request for our team to review. -->
+           No login required to fill this in. Submitting this does NOT
+           generate a working affiliate link; it only creates a "pending"
+           request for our team to review. -->
       <div id="referApplyBox" style="display:none;">
         <p>Fill this in to apply as a referral partner / influencer. Our team reviews every application — your affiliate link is generated only after approval.</p>
         <form class="custom-form" id="referApplyForm">
@@ -976,6 +976,10 @@
             <div class="f-field">
               <label for="raName">Name</label>
               <input type="text" id="raName" placeholder="Your full name" required>
+            </div>
+            <div class="f-field">
+              <label for="raEmail">Email</label>
+              <input type="email" id="raEmail" placeholder="you@example.com" required>
             </div>
             <div class="f-field">
               <label for="raPhone">Phone</label>
@@ -1012,6 +1016,14 @@
       <div class="refer-status-note refer-status-note--revoked" id="referRevokedNote" style="display:none;">
         Your referral partner access isn't active right now. Please contact our team if you have questions.
         <div style="margin-top:12px;"><button class="btn-primary" id="referReapplyBtn">Apply again</button></div>
+      </div>
+
+      <!-- Shown when someone applied WITHOUT logging in and an admin has
+           already approved them — their live link/earnings need a login
+           (same email) to display, so this just points them there. -->
+      <div class="refer-status-note refer-status-note--approved-anon" id="referApprovedAnonNote" style="display:none;">
+        🎉 You're approved as a referral partner! Log in with the same email you applied with to see your referral link, commission % and earnings.
+        <div style="margin-top:12px;"><button class="btn-primary" id="referApprovedAnonLoginBtn">Log in</button></div>
       </div>
 
       <div id="referApprovedBox" style="display:none;">
