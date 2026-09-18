@@ -1038,6 +1038,14 @@ blockquote cite{ font-size:0.82rem; color:var(--teal); font-weight:600; font-sty
 .refer-stat strong{ font-family:var(--serif); font-size:1.5rem; color:var(--amber-deep); }
 .refer-stat span{ font-size:0.8rem; color:var(--ink-soft); }
 
+/* Referral Partner status banners — additive, doesn't change any rule
+   above. Shown inside #referLoggedIn depending on admin approval state. */
+.refer-status-note{
+  border-radius:var(--radius-s); padding:14px 18px; font-size:0.9rem; margin-bottom:6px;
+}
+.refer-status-note--pending{ background:var(--sand-soft); border:1px dashed var(--line); color:var(--ink-soft); }
+.refer-status-note--revoked{ background:#FBE0DB; color:#8A362B; border:1px solid #F3C4BB; }
+
 /* ===========================================================
    BOOKINGS ADMIN (referral reward trigger) — new, additive
    section, doesn't change any rule above.

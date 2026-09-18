@@ -90,6 +90,7 @@ tr:hover td{background:var(--sand-soft);}
 .subsection{display:none;}
 .subsection.active{display:block;}
 .muted{color:var(--ink-soft);font-size:13px;}
+.app-detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;font-size:14px;}
 .toast{position:fixed;bottom:20px;right:20px;background:var(--navy);color:#fff;padding:12px 18px;
   border-radius:var(--radius-s);font-size:13.5px;box-shadow:var(--shadow-card);z-index:999;
   opacity:0;transform:translateY(10px);transition:.25s;pointer-events:none;}
@@ -961,20 +962,110 @@ document.addEventListener("click", async (e)=>{
   }catch(err){ showToast(err.message); }
 });
 
-/* ---------- REFER & EARN ---------- */
+/* ---------- REFER & EARN ----------
+   Admin has full control here: nobody's referral link works and nobody
+   earns anything until you Approve them below with a commission %. You
+   can change that % any time, or Revoke access entirely. "View bookings"
+   expands each partner's own earnings — booking ID, destination, the
+   booking's business amount, and the commission credited to them. */
+function referRowId(email){ return `ref-earnings-${email.replace(/[^a-zA-Z0-9]/g,"_")}`; }
+function referAppRowId(email){ return `ref-application-${email.replace(/[^a-zA-Z0-9]/g,"_")}`; }
+
 async function loadRefer(){
   const el = document.getElementById("referList");
   el.innerHTML = '<div class="empty">Loading…</div>';
   try{
     const data = await apiGetAdmin("/api/refer/admin/all");
     const rows = data.referrers || [];
-    if(!rows.length){ el.innerHTML = '<div class="empty">No referrers yet.</div>'; return; }
-    el.innerHTML = `<p class="muted">Referral reward: ${data.referralPercent}% of each confirmed booking.</p>
-      <table><thead><tr><th>Name</th><th>Email</th><th>Code</th><th>Referred</th><th>Earned</th></tr></thead><tbody>
-      ${rows.map(r=>`<tr><td>${esc(r.name||"-")}</td><td>${esc(r.email)}</td><td>${esc(r.code)}</td><td>${r.referredCount}</td><td>${money(r.rewardEarned)}</td></tr>`).join("")}
+    if(!rows.length){ el.innerHTML = '<div class="empty">No referral partner requests yet.</div>'; return; }
+
+    el.innerHTML = `<p class="muted">Approve who gets to be a referral partner and choose their commission % — each partner only sees their own referral link and earnings on their dashboard once approved.</p>
+      <table><thead><tr><th>Name</th><th>Email</th><th>Code</th><th>Status</th><th>Commission %</th><th>Referred</th><th>Earned</th><th>Actions</th></tr></thead><tbody>
+      ${rows.map(r=>{
+        const statusPill = r.status==="approved" ? '<span class="pill green">Approved</span>'
+          : r.status==="revoked" ? '<span class="pill red">Revoked</span>'
+          : '<span class="pill amber">Pending</span>';
+        const earnings = r.earnings || [];
+        const actions = r.status==="approved"
+          ? `<button class="btn small" data-save-commission-ref="${esc(r.email)}">Save %</button> <button class="btn small coral" data-revoke-ref="${esc(r.email)}">Revoke</button>`
+          : `<button class="btn small" data-approve-ref="${esc(r.email)}">Approve</button>`;
+        const viewBtn = earnings.length ? `<button class="btn small ghost" data-view-earnings-ref="${esc(r.email)}">View bookings (${earnings.length})</button>` : "";
+        const appBtn = `<button class="btn small ghost" data-view-application-ref="${esc(r.email)}">View application</button>`;
+        const earningsTable = earnings.length
+          ? `<table><thead><tr><th>Booking ID</th><th>Destination</th><th>Business Amount</th><th>Commission %</th><th>Commission Earned</th><th>Date</th></tr></thead><tbody>
+              ${earnings.map(e=>`<tr><td>${esc(e.bookingId)}</td><td>${esc(e.destination||e.itemName||"-")}</td><td>${money(e.amount)}</td><td>${e.commissionPercent}%</td><td>${money(e.rewardAmount)}</td><td>${new Date(e.creditedAt).toLocaleDateString("en-IN")}</td></tr>`).join("")}
+            </tbody></table>`
+          : '<span class="muted">No confirmed bookings yet.</span>';
+        const applicationBlock = `<div class="app-detail-grid">
+              <div><span class="muted">Phone</span><br>${esc(r.phone||"-")}</div>
+              <div><span class="muted">Instagram/YouTube profile</span><br>${esc(r.socialProfile||"-")}</div>
+              <div><span class="muted">Followers</span><br>${esc(r.followers||"-")}</div>
+              <div><span class="muted">Content category</span><br>${esc(r.contentCategory||"-")}</div>
+              <div><span class="muted">Audience location</span><br>${esc(r.audienceLocation||"-")}</div>
+              <div><span class="muted">Applied on</span><br>${r.requestedAt ? new Date(r.requestedAt).toLocaleDateString("en-IN") : "-"}</div>
+            </div>
+            <div style="margin-top:10px;"><span class="muted">Why do you want to promote us?</span><p style="margin:4px 0 0;">${esc(r.reason||"-")}</p></div>`;
+        return `<tr>
+          <td>${esc(r.name||"-")}</td>
+          <td>${esc(r.email)}</td>
+          <td>${esc(r.code)}</td>
+          <td>${statusPill}</td>
+          <td><input type="number" min="0" max="100" step="0.5" data-commission-for="${esc(r.email)}" value="${r.commissionPercent==null?"":r.commissionPercent}" placeholder="%" style="width:64px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;"></td>
+          <td>${r.referredCount}</td>
+          <td>${money(r.rewardEarned)}</td>
+          <td style="white-space:nowrap;">${actions} ${appBtn} ${viewBtn}</td>
+        </tr>
+        <tr id="${referAppRowId(r.email)}" style="display:none;"><td colspan="8">${applicationBlock}</td></tr>
+        <tr id="${referRowId(r.email)}" style="display:none;"><td colspan="8">${earningsTable}</td></tr>`;
+      }).join("")}
       </tbody></table>`;
   }catch(err){ el.innerHTML = `<div class="empty">${esc(err.message)}</div>`; }
 }
+
+document.addEventListener("click", async (e)=>{
+  const viewBtn = e.target.closest("[data-view-earnings-ref]");
+  if(viewBtn){
+    const row = document.getElementById(referRowId(viewBtn.dataset.viewEarningsRef));
+    if(row) row.style.display = row.style.display==="none" ? "table-row" : "none";
+    return;
+  }
+
+  const viewAppBtn = e.target.closest("[data-view-application-ref]");
+  if(viewAppBtn){
+    const row = document.getElementById(referAppRowId(viewAppBtn.dataset.viewApplicationRef));
+    if(row) row.style.display = row.style.display==="none" ? "table-row" : "none";
+    return;
+  }
+
+  const approveBtn = e.target.closest("[data-approve-ref]");
+  const saveBtn = e.target.closest("[data-save-commission-ref]");
+  if(approveBtn || saveBtn){
+    const email = approveBtn ? approveBtn.dataset.approveRef : saveBtn.dataset.saveCommissionRef;
+    const input = document.querySelector(`[data-commission-for="${CSS.escape(email)}"]`);
+    const pct = input ? Number(input.value) : NaN;
+    if(!input || input.value===""  || isNaN(pct) || pct<0 || pct>100){
+      showToast("Please enter a valid commission % (0–100) first.");
+      return;
+    }
+    try{
+      await apiSendAdmin("/api/refer/admin/approve", "POST", { email, commissionPercent: pct, approved: true });
+      showToast(approveBtn ? "Referral partner approved." : "Commission % updated.");
+      loadRefer();
+    }catch(err){ showToast(err.message); }
+    return;
+  }
+
+  const revokeBtn = e.target.closest("[data-revoke-ref]");
+  if(revokeBtn){
+    const email = revokeBtn.dataset.revokeRef;
+    if(!confirm(`Revoke referral partner access for ${email}? Their link will stop working for new sign-ups.`)) return;
+    try{
+      await apiSendAdmin("/api/refer/admin/approve", "POST", { email, approved: false });
+      showToast("Referral partner access revoked.");
+      loadRefer();
+    }catch(err){ showToast(err.message); }
+  }
+});
 
 /* ---------- WEDDING ---------- */
 document.querySelectorAll(".wd-tab").forEach(tab=>{

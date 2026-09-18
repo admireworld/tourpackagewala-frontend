@@ -130,7 +130,7 @@
       "name": "How does the Refer & Earn program work?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Share your personal referral link. When someone signs up through it, they get an instant ₹500 welcome bonus. Once their trip booking is confirmed, you earn a percentage of that booking amount as travel credit."
+        "text": "Once you're approved as a referral partner, share your personal referral link. When someone signs up through it, they get an instant ₹500 welcome bonus. Once their trip booking is confirmed, you earn your commission percentage of that booking amount as travel credit."
       }
     },
     {
@@ -953,29 +953,88 @@
 <section class="tab-panel" id="tab-refer" data-panel="refer">
   <div class="panel-hero panel-hero--refer">
     <p class="hero-kicker">Refer &amp; Earn</p>
-    <h1>Refer a friend, both of you earn</h1>
-    <p class="panel-sub">Share your referral link — whenever a new traveller signs up through it and confirms their trip booking, you get a fixed % of that booking amount as travel credit, and they get an instant ₹500 welcome bonus at signup.</p>
+    <h1>Earn Rewards by Referring Travel Packages to Friends &amp; Family</h1>
+    <p class="panel-sub">Share your referral link — whenever a new traveller signs up through it and confirms their trip booking, you get a % of that booking amount as travel credit (your commission rate is set by our team once you're approved as a referral partner), and they get an instant ₹500 welcome bonus at signup.</p>
   </div>
   <div class="section">
     <div class="refer-box" id="referLoggedOut">
-      <h3>Log in to get your referral link</h3>
-      <p>It's free — the moment you log in, your personal referral code will be ready.</p>
+      <h3>Log in to become a referral partner</h3>
+      <p>It's free — log in, then fill out a short application for our team to review.</p>
       <button class="btn-primary" id="referLoginBtn">Log in</button>
     </div>
 
     <div class="refer-box" id="referLoggedIn" style="display:none;">
-      <h3>Your referral code</h3>
-      <div class="refer-code-row">
-        <span class="refer-code" id="referCodeText">—</span>
-        <button class="btn-primary" id="referCopyBtn">Copy link</button>
+      <h3>Your referral partner status</h3>
+
+      <!-- Application form — shown only before anything has been submitted yet.
+           Submitting this does NOT generate a working affiliate link; it only
+           creates a "pending" request for our team to review. -->
+      <div id="referApplyBox" style="display:none;">
+        <p>Fill this in to apply as a referral partner / influencer. Our team reviews every application — your affiliate link is generated only after approval.</p>
+        <form class="custom-form" id="referApplyForm">
+          <div class="form-grid">
+            <div class="f-field">
+              <label for="raName">Name</label>
+              <input type="text" id="raName" placeholder="Your full name" required>
+            </div>
+            <div class="f-field">
+              <label for="raPhone">Phone</label>
+              <input type="tel" id="raPhone" placeholder="+91 98765 43210" maxlength="10">
+            </div>
+            <div class="f-field f-field--wide">
+              <label for="raSocial">Instagram / YouTube profile</label>
+              <input type="text" id="raSocial" placeholder="e.g. instagram.com/yourhandle" required>
+            </div>
+            <div class="f-field">
+              <label for="raFollowers">Followers</label>
+              <input type="text" id="raFollowers" placeholder="e.g. 12,000">
+            </div>
+            <div class="f-field">
+              <label for="raCategory">Content category</label>
+              <input type="text" id="raCategory" placeholder="e.g. Travel, Lifestyle, Vlogging">
+            </div>
+            <div class="f-field">
+              <label for="raLocation">Audience location</label>
+              <input type="text" id="raLocation" placeholder="e.g. Mostly India / Delhi-NCR">
+            </div>
+            <div class="f-field f-field--wide">
+              <label for="raReason">Why do you want to promote us?</label>
+              <textarea id="raReason" rows="3" placeholder="Tell us a bit about why you'd like to become a referral partner" required></textarea>
+            </div>
+          </div>
+          <button type="submit" class="btn-primary">Submit application</button>
+        </form>
       </div>
-      <div class="refer-share-row">
-        <a class="btn-text" id="referWhatsapp" target="_blank" rel="noopener">Share on WhatsApp</a>
+
+      <div class="refer-status-note refer-status-note--pending" id="referPendingNote" style="display:none;">
+        Your request to become a referral partner is with our team for review. Once approved, your referral link and commission % will appear here.
       </div>
-      <div class="refer-stats-row">
-        <div class="refer-stat"><strong id="referCountStat">0</strong><span>friends referred</span></div>
-        <div class="refer-stat"><strong id="referEarnedStat">₹0</strong><span>total credit earned</span></div>
+      <div class="refer-status-note refer-status-note--revoked" id="referRevokedNote" style="display:none;">
+        Your referral partner access isn't active right now. Please contact our team if you have questions.
+        <div style="margin-top:12px;"><button class="btn-primary" id="referReapplyBtn">Apply again</button></div>
       </div>
+
+      <div id="referApprovedBox" style="display:none;">
+        <div class="refer-code-row">
+          <span class="refer-code" id="referCodeText">—</span>
+          <button class="btn-primary" id="referCopyBtn">Copy link</button>
+        </div>
+        <div class="refer-share-row">
+          <a class="btn-text" id="referWhatsapp" target="_blank" rel="noopener">Share on WhatsApp</a>
+        </div>
+        <div class="refer-stats-row">
+          <div class="refer-stat"><strong id="referCountStat">0</strong><span>friends referred</span></div>
+          <div class="refer-stat"><strong id="referEarnedStat">₹0</strong><span>total credit earned</span></div>
+          <div class="refer-stat"><strong id="referCommissionStat">0%</strong><span>your commission rate</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="refer-box" id="referEarningsBox" style="display:none; margin-top:24px;">
+      <h3>Your Referral Earnings</h3>
+      <p>Every confirmed booking made through your referral link, with the booking ID, destination, business amount and the commission credited to you.</p>
+      <div class="my-bookings-list" id="referEarningsList"></div>
+      <p id="referEarningsEmpty" style="display:none; color:var(--ink-soft);">No referred bookings confirmed yet.</p>
     </div>
 
     <div class="how-grid" style="margin-top:36px;">
@@ -992,7 +1051,7 @@
       <div class="how-card">
         <span class="how-mark">Earn</span>
         <h3>Both of you get credit</h3>
-        <p>They get an instant ₹500 welcome bonus. Once their trip booking is confirmed, you get a % of that amount as travel credit — we'll email you asking for your payment scanner.</p>
+        <p>They get an instant ₹500 welcome bonus. Once their trip booking is confirmed, you get your commission % of that amount as travel credit — we'll email you asking for your payment scanner.</p>
       </div>
     </div>
 
@@ -1086,7 +1145,7 @@
     </details>
     <details class="faq-item">
       <summary><strong>How does the Refer &amp; Earn program work?</strong></summary>
-      <p>Share your personal referral link. When someone signs up through it, they get an instant ₹500 welcome bonus. Once their trip booking is confirmed, you earn a percentage of that booking amount as travel credit.</p>
+      <p>Once you're approved as a referral partner, share your personal referral link. When someone signs up through it, they get an instant ₹500 welcome bonus. Once their trip booking is confirmed, you earn your commission percentage of that booking amount as travel credit.</p>
     </details>
     <details class="faq-item">
       <summary><strong>Does AdmireDworld Travel plan destination weddings?</strong></summary>

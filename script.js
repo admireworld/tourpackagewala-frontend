@@ -2726,40 +2726,109 @@ function referralLinkFor(code){
   return `${location.origin}${location.pathname}?ref=${code}#refer`;
 }
 
+function referEarningRowHTML(e){
+  return `
+  <div class="my-booking-card">
+    <div class="my-booking-info">
+      <h4>${e.itemName || "Referred booking"}</h4>
+      <div class="my-booking-grid">
+        <div><span>Booking ID</span><strong>${e.bookingId}</strong></div>
+        <div><span>Destination</span><strong>${e.destination || e.itemName || "-"}</strong></div>
+        <div><span>Business Amount</span><strong>${money(e.amount)}</strong></div>
+        <div><span>Your Commission</span><strong>${e.commissionPercent}% · ${money(e.rewardAmount)}</strong></div>
+      </div>
+      <p>Credited on ${new Date(e.creditedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</p>
+    </div>
+  </div>`;
+}
+
+// Referral partner access (code/link/commission %/earnings) is fully
+// admin-controlled now — opening this tab no longer creates any request
+// by itself. A visitor must fill out the application form (name, social
+// profile, followers, content category, audience location, phone, and
+// why they want to promote us); only THEN does a "pending" request get
+// created. The affiliate link is generated only once an admin approves
+// it from the dashboard (Pending -> Approved -> Affiliate Active).
 async function loadReferUI(){
   const loggedOutBox = document.getElementById("referLoggedOut");
   const loggedInBox = document.getElementById("referLoggedIn");
+  const earningsBox = document.getElementById("referEarningsBox");
+  const applyBox = document.getElementById("referApplyBox");
+  const pendingNote = document.getElementById("referPendingNote");
+  const revokedNote = document.getElementById("referRevokedNote");
+  const approvedBox = document.getElementById("referApprovedBox");
   if(!loggedOutBox || !loggedInBox) return;
 
-  if(!state.user){
+  if(!state.user || !state.token){
     loggedOutBox.style.display = "block";
     loggedInBox.style.display = "none";
+    if(earningsBox) earningsBox.style.display = "none";
     return;
   }
   loggedOutBox.style.display = "none";
   loggedInBox.style.display = "block";
 
+  function showStatus(which){
+    applyBox.style.display = which === "apply" ? "block" : "none";
+    pendingNote.style.display = which === "pending" ? "block" : "none";
+    revokedNote.style.display = which === "revoked" ? "block" : "none";
+    approvedBox.style.display = which === "approved" ? "block" : "none";
+    if(earningsBox) earningsBox.style.display = which === "approved" ? "block" : "none";
+  }
+
   try{
-    const data = await apiPost("/api/refer/my-code", { email: state.user.email, name: state.user.name });
-    document.getElementById("referCodeText").textContent = data.code;
-    document.getElementById("referCountStat").textContent = data.referredCount;
-    document.getElementById("referEarnedStat").textContent = money(data.rewardEarned);
+    // Just reads current status — does NOT create or touch any request.
+    const res = await fetch(`${API_BASE_URL}/api/refer/my-earnings`, {
+      headers: { Authorization: `Bearer ${state.token}` },
+    });
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error(data.error || "Could not load your referral status.");
 
-    const link = referralLinkFor(data.code);
-    const waText = encodeURIComponent(`Book your next trip on AdmireDworld Travel — use my referral link and we both get travel credit: ${link}`);
-    document.getElementById("referWhatsapp").href = `https://wa.me/?text=${waText}`;
+    if(!data.requested){
+      // Never applied yet -> show the application form. Prefill name from account.
+      showStatus("apply");
+      const nameField = document.getElementById("raName");
+      if(nameField && !nameField.value) nameField.value = state.user.name || "";
+      return;
+    }
 
-    const copyBtn = document.getElementById("referCopyBtn");
-    copyBtn.onclick = async ()=>{
-      try{
-        await navigator.clipboard.writeText(link);
-        showToast("Referral link copied!");
-      }catch{
-        showToast(link, 8000);
+    if(data.approved){
+      showStatus("approved");
+
+      document.getElementById("referCodeText").textContent = data.code;
+      document.getElementById("referCountStat").textContent = data.referredCount;
+      document.getElementById("referEarnedStat").textContent = money(data.rewardEarned);
+      document.getElementById("referCommissionStat").textContent = `${data.commissionPercent}%`;
+
+      const link = referralLinkFor(data.code);
+      const waText = encodeURIComponent(`Book your next trip on AdmireDworld Travel — use my referral link and we both get travel credit: ${link}`);
+      document.getElementById("referWhatsapp").href = `https://wa.me/?text=${waText}`;
+
+      const copyBtn = document.getElementById("referCopyBtn");
+      copyBtn.onclick = async ()=>{
+        try{
+          await navigator.clipboard.writeText(link);
+          showToast("Referral link copied!");
+        }catch{
+          showToast(link, 8000);
+        }
+      };
+
+      if(earningsBox){
+        const listEl = document.getElementById("referEarningsList");
+        const emptyEl = document.getElementById("referEarningsEmpty");
+        const earnings = data.earnings || [];
+        listEl.innerHTML = earnings.map(referEarningRowHTML).join("");
+        emptyEl.style.display = earnings.length ? "none" : "block";
       }
-    };
+    } else if(data.status === "revoked"){
+      showStatus("revoked");
+    } else {
+      showStatus("pending");
+    }
   }catch(err){
-    document.getElementById("referCodeText").textContent = "Could not load";
+    showStatus("apply");
+    showToast(err.message, 5000);
   }
 }
 document.querySelectorAll('[data-tab="refer"]').forEach(el=>{
@@ -2770,6 +2839,41 @@ if (location.hash.slice(1) === "refer") loadReferUI();
 document.getElementById("referLoginBtn")?.addEventListener("click", ()=>{
   resetLoginModal();
   openOverlay(loginOverlay);
+});
+
+// Submitting the application form: creates a "pending" request only.
+// The affiliate link is NOT generated here — only once an admin approves
+// it from the Admin Dashboard.
+document.getElementById("referApplyForm")?.addEventListener("submit", async (e)=>{
+  e.preventDefault();
+  if(!state.user || !state.token){ return; }
+  const payload = {
+    email: state.user.email,
+    name: document.getElementById("raName").value.trim(),
+    phone: document.getElementById("raPhone").value.trim(),
+    socialProfile: document.getElementById("raSocial").value.trim(),
+    followers: document.getElementById("raFollowers").value.trim(),
+    contentCategory: document.getElementById("raCategory").value.trim(),
+    audienceLocation: document.getElementById("raLocation").value.trim(),
+    reason: document.getElementById("raReason").value.trim(),
+  };
+  if(!payload.name || !payload.socialProfile || !payload.reason){
+    showToast("Please fill in your name, Instagram/YouTube profile, and why you want to promote us.");
+    return;
+  }
+  try{
+    await apiPost("/api/refer/apply-partner", payload);
+    showToast("Application submitted! Our team will review it shortly.", 6000);
+    loadReferUI();
+  }catch(err){
+    showToast(err.message);
+  }
+});
+
+// "Apply again" after a revoke — just re-opens the same form.
+document.getElementById("referReapplyBtn")?.addEventListener("click", ()=>{
+  document.getElementById("referApplyBox").style.display = "block";
+  document.getElementById("referRevokedNote").style.display = "none";
 });
 
 // Apply a stored referral code once, right after a successful OTP verification.
