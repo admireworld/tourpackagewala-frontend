@@ -180,7 +180,10 @@ tr:hover td{background:var(--sand-soft);}
         <div class="card">
           <h3>Add a package</h3>
           <div id="pkgForm-india"></div>
-          <div style="margin-top:12px;"><button class="btn" onclick="addPackage('india')">Add package</button></div>
+          <div style="margin-top:12px;">
+            <button class="btn" id="pkgSubmitBtn-india" onclick="addPackage('india')">Add package</button>
+            <button class="btn small ghost" id="pkgCancelBtn-india" onclick="cancelPkgEdit('india')" style="display:none;">Cancel edit</button>
+          </div>
           <div class="ok-msg" id="pkgMsg-india"></div>
         </div>
         <div class="card"><h3>All packages</h3><div id="pkgList-india" class="empty">Loading…</div></div>
@@ -192,7 +195,10 @@ tr:hover td{background:var(--sand-soft);}
         <div class="card">
           <h3>Add a package</h3>
           <div id="pkgForm-international"></div>
-          <div style="margin-top:12px;"><button class="btn" onclick="addPackage('international')">Add package</button></div>
+          <div style="margin-top:12px;">
+            <button class="btn" id="pkgSubmitBtn-international" onclick="addPackage('international')">Add package</button>
+            <button class="btn small ghost" id="pkgCancelBtn-international" onclick="cancelPkgEdit('international')" style="display:none;">Cancel edit</button>
+          </div>
           <div class="ok-msg" id="pkgMsg-international"></div>
         </div>
         <div class="card"><h3>All packages</h3><div id="pkgList-international" class="empty">Loading…</div></div>
@@ -216,7 +222,10 @@ tr:hover td{background:var(--sand-soft);}
               <textarea id="fxDateOptions" rows="3" placeholder="12 May 2027 | 8&#10;26 May 2027 | 14"></textarea>
             </div>
           </div>
-          <div style="margin-top:12px;"><button class="btn" onclick="addFixed()">Add fixed departure</button></div>
+          <div style="margin-top:12px;">
+            <button class="btn" id="fxSubmitBtn" onclick="addFixed()">Add fixed departure</button>
+            <button class="btn small ghost" id="fxCancelBtn" onclick="cancelFxEdit()" style="display:none;">Cancel edit</button>
+          </div>
           <div class="ok-msg" id="fxMsg"></div>
         </div>
         <div class="card"><h3>All fixed departures</h3><div id="fxList" class="empty">Loading…</div></div>
@@ -235,25 +244,37 @@ tr:hover td{background:var(--sand-soft);}
         </div>
         <div class="subsection active" id="cz-sub-hotels">
           <div class="card"><h3>Add hotel</h3><div id="czForm-hotels"></div>
-            <div style="margin-top:12px;"><button class="btn" onclick="addCzItem('hotels')">Add</button></div>
+            <div style="margin-top:12px;">
+              <button class="btn" id="czSubmitBtn-hotels" onclick="addCzItem('hotels')">Add</button>
+              <button class="btn small ghost" id="czCancelBtn-hotels" onclick="cancelCzEdit('hotels')" style="display:none;">Cancel edit</button>
+            </div>
             <div class="ok-msg" id="czMsg-hotels"></div></div>
           <div class="card"><h3>All hotels</h3><div id="czList-hotels" class="empty">Loading…</div></div>
         </div>
         <div class="subsection" id="cz-sub-sightseeing">
           <div class="card"><h3>Add sightseeing</h3><div id="czForm-sightseeing"></div>
-            <div style="margin-top:12px;"><button class="btn" onclick="addCzItem('sightseeing')">Add</button></div>
+            <div style="margin-top:12px;">
+              <button class="btn" id="czSubmitBtn-sightseeing" onclick="addCzItem('sightseeing')">Add</button>
+              <button class="btn small ghost" id="czCancelBtn-sightseeing" onclick="cancelCzEdit('sightseeing')" style="display:none;">Cancel edit</button>
+            </div>
             <div class="ok-msg" id="czMsg-sightseeing"></div></div>
           <div class="card"><h3>All sightseeing</h3><div id="czList-sightseeing" class="empty">Loading…</div></div>
         </div>
         <div class="subsection" id="cz-sub-transfers">
           <div class="card"><h3>Add pickup &amp; drop</h3><div id="czForm-transfers"></div>
-            <div style="margin-top:12px;"><button class="btn" onclick="addCzItem('transfers')">Add</button></div>
+            <div style="margin-top:12px;">
+              <button class="btn" id="czSubmitBtn-transfers" onclick="addCzItem('transfers')">Add</button>
+              <button class="btn small ghost" id="czCancelBtn-transfers" onclick="cancelCzEdit('transfers')" style="display:none;">Cancel edit</button>
+            </div>
             <div class="ok-msg" id="czMsg-transfers"></div></div>
           <div class="card"><h3>All pickup &amp; drop</h3><div id="czList-transfers" class="empty">Loading…</div></div>
         </div>
         <div class="subsection" id="cz-sub-visas">
           <div class="card"><h3>Add visa</h3><div id="czForm-visas"></div>
-            <div style="margin-top:12px;"><button class="btn" onclick="addCzItem('visas')">Add</button></div>
+            <div style="margin-top:12px;">
+              <button class="btn" id="czSubmitBtn-visas" onclick="addCzItem('visas')">Add</button>
+              <button class="btn small ghost" id="czCancelBtn-visas" onclick="cancelCzEdit('visas')" style="display:none;">Cancel edit</button>
+            </div>
             <div class="ok-msg" id="czMsg-visas"></div></div>
           <div class="card"><h3>All visas</h3><div id="czList-visas" class="empty">Loading…</div></div>
         </div>
@@ -652,6 +673,10 @@ function buildPkgForm(kind){
       ${f.type==="textarea" ? `<textarea id="pkg-${kind}-${f.id}"></textarea>` : `<input id="pkg-${kind}-${f.id}" type="${f.type||"text"}">`}
     </div>`).join("")}</div>`;
 }
+let pkgEditId = { india: null, international: null };
+function dayWiseToText(dayWise){
+  return (dayWise||[]).map(d=>`${d.title||""} | ${d.desc||""}`).join("\n");
+}
 async function loadPackages(kind){
   buildPkgForm(kind);
   const el = document.getElementById(`pkgList-${kind}`);
@@ -666,7 +691,10 @@ async function loadPackages(kind){
         <td>${esc(p.name)}</td>
         <td>${esc(p.loc)}</td>
         <td>${money(p.discountPrice||p.price)}${p.discountPrice?` <span class="muted" style="text-decoration:line-through;">${money(p.price)}</span>`:""}</td>
-        <td><button class="btn small coral" data-del-pkg="${p.id}" data-kind="${kind}">Delete</button></td>
+        <td>
+          <button class="btn small ghost" data-edit-pkg="${p.id}" data-kind="${kind}">Edit</button>
+          <button class="btn small coral" data-del-pkg="${p.id}" data-kind="${kind}">Delete</button>
+        </td>
       </tr>`).join("")}</tbody></table>`;
   }catch(err){ el.innerHTML = `<div class="empty">${esc(err.message)}</div>`; }
 }
@@ -680,6 +708,33 @@ document.addEventListener("click", async (e)=>{
     loadPackages(btn.dataset.kind);
   }catch(err){ showToast(err.message); }
 });
+document.addEventListener("click", async (e)=>{
+  const btn = e.target.closest("[data-edit-pkg]");
+  if(!btn) return;
+  const kind = btn.dataset.kind;
+  const id = btn.dataset.editPkg;
+  try{
+    const data = await apiGetPublic(`/api/packages/${kind}/${id}`);
+    const p = data.package || {};
+    buildPkgForm(kind);
+    const set = (fid, val) => { const el = document.getElementById(`pkg-${kind}-${fid}`); if(el) el.value = val ?? ""; };
+    set("name", p.name); set("loc", p.loc); set("destination", p.destination);
+    set("tag", p.tag); set("cat", p.cat); set("hotelCategory", p.hotelCategory);
+    set("hotelName", p.hotelName); set("price", p.price); set("discountPrice", p.discountPrice);
+    set("desc", p.desc); set("dayWise", dayWiseToText(p.dayWise));
+    set("inclusions", (p.inclusions||[]).join(", ")); set("exclusions", (p.exclusions||[]).join(", "));
+    pkgEditId[kind] = id;
+    document.getElementById(`pkgSubmitBtn-${kind}`).textContent = "Save changes";
+    document.getElementById(`pkgCancelBtn-${kind}`).style.display = "inline-block";
+    document.getElementById(`pkgForm-${kind}`).scrollIntoView({ behavior: "smooth", block: "center" });
+  }catch(err){ showToast(err.message); }
+});
+function cancelPkgEdit(kind){
+  pkgEditId[kind] = null;
+  document.getElementById(`pkgSubmitBtn-${kind}`).textContent = "Add package";
+  document.getElementById(`pkgCancelBtn-${kind}`).style.display = "none";
+  PKG_FORM_FIELDS.forEach(f=>{ const el = document.getElementById(`pkg-${kind}-${f.id}`); if(el) el.value=""; });
+}
 async function addPackage(kind){
   const msg = document.getElementById(`pkgMsg-${kind}`);
   msg.textContent = "";
@@ -693,12 +748,19 @@ async function addPackage(kind){
     inclusions: parseList(get("inclusions")), exclusions: parseList(get("exclusions")),
   };
   if(!body.name || !body.loc){ msg.style.color="var(--coral-deep)"; msg.textContent = "Name and route are required."; return; }
+  const editingId = pkgEditId[kind];
   try{
-    await apiSendAdmin(`/api/packages/${kind}`, "POST", body);
-    msg.style.color = "var(--teal-deep)"; msg.textContent = "Package added.";
-    PKG_FORM_FIELDS.forEach(f=>{ document.getElementById(`pkg-${kind}-${f.id}`).value=""; });
+    if(editingId){
+      await apiSendAdmin(`/api/packages/${kind}/${editingId}`, "PUT", body);
+      msg.style.color = "var(--teal-deep)"; msg.textContent = "Package updated.";
+      showToast("Package updated");
+    } else {
+      await apiSendAdmin(`/api/packages/${kind}`, "POST", body);
+      msg.style.color = "var(--teal-deep)"; msg.textContent = "Package added.";
+      showToast("Package added");
+    }
+    cancelPkgEdit(kind);
     loadPackages(kind);
-    showToast("Package added");
   }catch(err){ msg.style.color = "var(--coral-deep)"; msg.textContent = err.message; }
 }
 
@@ -714,6 +776,7 @@ function parseFixedDateOptions(text){
 function fixedDateOptionsToText(dateOptions){
   return (dateOptions||[]).map(o=>`${o.date} | ${o.seats}`).join("\n");
 }
+let fxEditId = null;
 
 async function loadFixed(){
   const el = document.getElementById("fxList");
@@ -731,6 +794,7 @@ async function loadFixed(){
           </div>
           <div>
             <button class="btn small ghost" data-fx-toggle="${f.id}">Manage dates &amp; seats</button>
+            <button class="btn small ghost" data-fx-edit="${f.id}">Edit</button>
             <button class="btn small coral" data-fx-delete="${f.id}">Delete</button>
           </div>
         </div>
@@ -762,6 +826,27 @@ document.addEventListener("click", async (e)=>{
   if(toggleBtn){
     const panel = document.getElementById(`fx-manage-${toggleBtn.dataset.fxToggle}`);
     if(panel) panel.style.display = panel.style.display === "none" ? "block" : "none";
+    return;
+  }
+
+  const editBtn = e.target.closest("[data-fx-edit]");
+  if(editBtn){
+    try{
+      const data = await apiGetPublic(`/api/fixed/${editBtn.dataset.fxEdit}`);
+      const f = data.departure || {};
+      document.getElementById("fxName").value = f.name || "";
+      document.getElementById("fxLoc").value = f.loc || "";
+      document.getElementById("fxDays").value = f.days || "";
+      document.getElementById("fxFromCity").value = f.fromCity || "";
+      document.getElementById("fxBadge").value = f.badge || "";
+      document.getElementById("fxPrice").value = f.price || "";
+      document.getElementById("fxShortDesc").value = f.shortDesc || "";
+      document.getElementById("fxDateOptions").value = fixedDateOptionsToText(f.dateOptions);
+      fxEditId = f.id;
+      document.getElementById("fxSubmitBtn").textContent = "Save changes";
+      document.getElementById("fxCancelBtn").style.display = "inline-block";
+      document.getElementById("fxName").scrollIntoView({ behavior: "smooth", block: "center" });
+    }catch(err){ showToast(err.message); }
     return;
   }
 
@@ -819,6 +904,12 @@ document.addEventListener("click", async (e)=>{
   }
 });
 
+function cancelFxEdit(){
+  fxEditId = null;
+  document.getElementById("fxSubmitBtn").textContent = "Add fixed departure";
+  document.getElementById("fxCancelBtn").style.display = "none";
+  ["fxName","fxLoc","fxDays","fxFromCity","fxBadge","fxPrice","fxShortDesc","fxDateOptions"].forEach(id=>{ const el = document.getElementById(id); if(el) el.value=""; });
+}
 async function addFixed(){
   const msg = document.getElementById("fxMsg");
   msg.textContent = "";
@@ -834,11 +925,17 @@ async function addFixed(){
   };
   if(!body.name || !body.loc){ msg.style.color="var(--coral-deep)"; msg.textContent = "Name and route are required."; return; }
   try{
-    await apiSendAdmin("/api/fixed", "POST", body);
-    msg.style.color = "var(--teal-deep)"; msg.textContent = "Fixed departure added.";
-    ["fxName","fxLoc","fxDays","fxFromCity","fxBadge","fxPrice","fxShortDesc","fxDateOptions"].forEach(id=>{ document.getElementById(id).value=""; });
+    if(fxEditId){
+      await apiSendAdmin(`/api/fixed/${fxEditId}`, "PUT", body);
+      msg.style.color = "var(--teal-deep)"; msg.textContent = "Fixed departure updated.";
+      showToast("Fixed departure updated");
+    } else {
+      await apiSendAdmin("/api/fixed", "POST", body);
+      msg.style.color = "var(--teal-deep)"; msg.textContent = "Fixed departure added.";
+      showToast("Fixed departure added");
+    }
+    cancelFxEdit();
     loadFixed();
-    showToast("Fixed departure added");
   }catch(err){ msg.style.color = "var(--coral-deep)"; msg.textContent = err.message; }
 }
 
@@ -867,10 +964,12 @@ document.querySelectorAll(".cz-tab").forEach(tab=>{
     document.getElementById("cz-sub-"+tab.dataset.cz).classList.add("active");
   });
 });
+let czLastData = {};
 async function loadCustomize(){
   Object.keys(CZ_FIELDS).forEach(buildCzForm);
   try{
     const data = await apiGetAdmin("/api/customize/admin/all");
+    czLastData = data;
     ["hotels","sightseeing","transfers","visas"].forEach(type=>{
       const el = document.getElementById(`czList-${type}`);
       const items = data[type] || [];
@@ -878,7 +977,10 @@ async function loadCustomize(){
       const locLabel = type==="visas" ? "country" : "destination";
       el.innerHTML = `<table><thead><tr><th>${locLabel==="country"?"Country":"Destination"}</th><th>Name</th><th>Price</th><th></th></tr></thead><tbody>
         ${items.map(i=>`<tr><td>${esc(i[locLabel])}${i.category?` <span class="badge-src">${esc(i.category)}</span>`:""}</td><td>${esc(i.name)}</td><td>${money(i.price)}</td>
-        <td><button class="btn small coral" data-cz-del="${i.id}" data-cz-type="${type}">Delete</button></td></tr>`).join("")}</tbody></table>`;
+        <td>
+          <button class="btn small ghost" data-cz-edit="${i.id}" data-cz-type="${type}">Edit</button>
+          <button class="btn small coral" data-cz-del="${i.id}" data-cz-type="${type}">Delete</button>
+        </td></tr>`).join("")}</tbody></table>`;
     });
     if(data.settings) document.getElementById("czTaxPercent").value = data.settings.taxPercent;
   }catch(err){
@@ -907,18 +1009,49 @@ document.addEventListener("click", async (e)=>{
     loadCustomize();
   }catch(err){ showToast(err.message); }
 });
+let czEditId = { hotels: null, sightseeing: null, transfers: null, visas: null };
+document.addEventListener("click", async (e)=>{
+  const btn = e.target.closest("[data-cz-edit]");
+  if(!btn) return;
+  const type = btn.dataset.czType;
+  const id = btn.dataset.czEdit;
+  const item = (czLastData[type] || []).find(i => i.id === id);
+  if(!item){ showToast("Item not found."); return; }
+  buildCzForm(type);
+  CZ_FIELDS[type].forEach(f=>{
+    const el = document.getElementById(`cz-${type}-${f.id}`);
+    if(el) el.value = item[f.id] ?? "";
+  });
+  czEditId[type] = id;
+  document.getElementById(`czSubmitBtn-${type}`).textContent = "Save changes";
+  document.getElementById(`czCancelBtn-${type}`).style.display = "inline-block";
+  document.getElementById(`czForm-${type}`).scrollIntoView({ behavior: "smooth", block: "center" });
+});
+function cancelCzEdit(type){
+  czEditId[type] = null;
+  document.getElementById(`czSubmitBtn-${type}`).textContent = "Add";
+  document.getElementById(`czCancelBtn-${type}`).style.display = "none";
+  CZ_FIELDS[type].forEach(f=>{ const el = document.getElementById(`cz-${type}-${f.id}`); if(el) el.value=""; });
+}
 async function addCzItem(type){
   const msg = document.getElementById(`czMsg-${type}`);
   msg.textContent = "";
   const get = id => document.getElementById(`cz-${type}-${id}`).value;
   const body = {};
   CZ_FIELDS[type].forEach(f=>{ body[f.id] = get(f.id).trim ? get(f.id).trim() : get(f.id); });
+  const editingId = czEditId[type];
   try{
-    await apiSendAdmin(`/api/customize/${type}`, "POST", body);
-    msg.style.color = "var(--teal-deep)"; msg.textContent = "Added.";
-    CZ_FIELDS[type].forEach(f=>{ document.getElementById(`cz-${type}-${f.id}`).value=""; });
+    if(editingId){
+      await apiSendAdmin(`/api/customize/${type}/${editingId}`, "PUT", body);
+      msg.style.color = "var(--teal-deep)"; msg.textContent = "Updated.";
+      showToast("Item updated");
+    } else {
+      await apiSendAdmin(`/api/customize/${type}`, "POST", body);
+      msg.style.color = "var(--teal-deep)"; msg.textContent = "Added.";
+      showToast("Item added");
+    }
+    cancelCzEdit(type);
     loadCustomize();
-    showToast("Item added");
   }catch(err){ msg.style.color = "var(--coral-deep)"; msg.textContent = err.message; }
 }
 async function saveCzTax(){
