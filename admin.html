@@ -1168,13 +1168,22 @@ async function loadLeads(){
       Object.entries(bySource).map(([k,v])=>`<div class="stat-card"><div class="num">${v}</div><div class="lbl">${esc(k.replace(/_/g," "))}</div></div>`).join("");
     const rows = data.leads || [];
     if(!rows.length){ listEl.innerHTML = '<div class="empty">No leads yet.</div>'; return; }
-    listEl.innerHTML = `<table><thead><tr><th>Date</th><th>Name</th><th>Contact</th><th>Interest</th><th>Source</th><th>Status</th></tr></thead><tbody>
+    listEl.innerHTML = `<table><thead><tr><th>Date</th><th>Name</th><th>Contact</th><th>Interest</th><th>Source</th><th>Referral</th><th>Status</th></tr></thead><tbody>
       ${rows.map(l=>`<tr>
         <td>${fmtDate(l.createdAt)}</td>
         <td>${esc(l.name)}</td>
         <td>${esc(l.phone||'-')}${l.email?`<br><span class="muted">${esc(l.email)}</span>`:''}</td>
         <td>${esc(l.interest||'-')}${l.message?`<br><span class="muted">${esc(l.message)}</span>`:''}</td>
         <td><span class="badge-src">${esc(l.source.replace(/_/g,' '))}</span></td>
+        <td>${l.referralCode ? `
+          <div><strong>${esc(l.referralCode)}</strong></div>
+          <div class="muted">${esc(l.referrerName || l.referrerEmail || '-')}</div>
+          <div class="muted">Initial: ${esc(l.initialPackage || '-')}</div>
+          <div class="muted">Final: ${esc(l.finalPackage || '-')}</div>
+          <label style="display:flex;align-items:center;gap:4px;margin-top:4px;font-weight:normal;">
+            <input type="checkbox" data-lead-verify="${l.id}" ${l.referralVerified ? 'checked' : ''}> Verified
+          </label>
+        ` : '<span class="muted">—</span>'}</td>
         <td><select data-lead-status="${l.id}">
           ${["new","contacted","converted","closed"].map(s=>`<option value="${s}" ${s===l.status?"selected":""}>${s}</option>`).join("")}
         </select></td>
@@ -1183,11 +1192,24 @@ async function loadLeads(){
 }
 document.addEventListener("change", async (e)=>{
   const sel = e.target.closest("[data-lead-status]");
-  if(!sel) return;
-  try{
-    await apiSendAdmin("/api/leads/admin/status", "POST", { leadId: sel.dataset.leadStatus, status: sel.value });
-    showToast("Lead status updated");
-  }catch(err){ showToast(err.message); }
+  if(sel){
+    try{
+      await apiSendAdmin("/api/leads/admin/status", "POST", { leadId: sel.dataset.leadStatus, status: sel.value });
+      showToast("Lead status updated");
+    }catch(err){ showToast(err.message); }
+    return;
+  }
+  const chk = e.target.closest("[data-lead-verify]");
+  if(chk){
+    const wasChecked = chk.checked;
+    try{
+      await apiSendAdmin("/api/leads/admin/verify-referral", "POST", { leadId: chk.dataset.leadVerify, verified: wasChecked });
+      showToast(wasChecked ? "Referral marked as verified" : "Referral verification removed");
+    }catch(err){
+      chk.checked = !wasChecked;
+      showToast(err.message);
+    }
+  }
 });
 
 /* ---------- SETTINGS ---------- */

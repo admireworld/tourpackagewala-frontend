@@ -1027,6 +1027,13 @@
       </div>
 
       <div id="referApprovedBox" style="display:none;">
+        <div class="f-field" style="margin-bottom:14px;">
+          <label for="referPkgSelect">Attach a package to your link (optional)</label>
+          <select id="referPkgSelect">
+            <option value="">General link (no package selected)</option>
+          </select>
+          <p style="margin:6px 0 0; font-size:0.8rem; color:var(--ink-soft);">Whoever opens your link will see this package first, but can still browse and pick any other package.</p>
+        </div>
         <div class="refer-code-row">
           <span class="refer-code" id="referCodeText">—</span>
           <button class="btn-primary" id="referCopyBtn">Copy link</button>
@@ -1047,6 +1054,13 @@
       <p>Every confirmed booking made through your referral link, with the booking ID, destination, business amount and the commission credited to you.</p>
       <div class="my-bookings-list" id="referEarningsList"></div>
       <p id="referEarningsEmpty" style="display:none; color:var(--ink-soft);">No referred bookings confirmed yet.</p>
+    </div>
+
+    <div class="refer-box" id="referLeadsBox" style="display:none; margin-top:24px;">
+      <h3>Your Referred Enquiries</h3>
+      <p>Every enquiry submitted by a customer who came through your referral link — appears here as soon as they submit it, and shows whether our team has verified it yet.</p>
+      <div class="my-bookings-list" id="referLeadsList"></div>
+      <p id="referLeadsEmpty" style="display:none; color:var(--ink-soft);">No referred enquiries yet.</p>
     </div>
 
     <div class="how-grid" style="margin-top:36px;">

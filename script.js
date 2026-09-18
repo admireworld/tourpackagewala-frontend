@@ -1794,6 +1794,7 @@ async function loadIndiaPackagesFromBackend(){
     const activeChip = document.querySelector('#tab-india .chip.active');
     if(activeChip) activeChip.click();
     tryOpenPkgFromCurrentUrl("india");
+    tryOpenReferralInitialPackage("india");
   }catch(err){
     console.error("Could not load India packages from backend:", err);
   }
@@ -2211,9 +2212,13 @@ function openPkgEnquireForm(pkg){
     btn.disabled = true;
     btn.textContent = "Submitting…";
     try{
+      // referralCode / initialPackage (if any) are attached automatically by
+      // the apiPost wrapper below — finalPackage is always this exact
+      // package, i.e. whatever the customer actually chose to enquire about.
       await apiPost("/api/leads", {
         name, phone, message,
         interest: pkg.name,
+        finalPackage: pkg.name,
         source: "package_enquiry",
         page: location.pathname,
       });
@@ -2343,6 +2348,7 @@ async function loadIntlPackagesFromBackend(){
     const activeChip = document.querySelector('#tab-international .chip.active');
     if(activeChip) activeChip.click();
     tryOpenPkgFromCurrentUrl("international");
+    tryOpenReferralInitialPackage("international");
   }catch(err){
     console.error("Could not load International packages from backend:", err);
   }
@@ -2714,16 +2720,91 @@ document.getElementById("weddingForm")?.addEventListener("submit", async (e)=>{
    renderAll: by wrapping the existing apiPost function rather than
    editing the OTP handlers directly.
 ================================================================ */
-const REF_STORAGE_KEY = "adw_pending_ref_code";
+const REF_STORAGE_KEY = "adw_pending_ref_code"; // one-time: consumed by /api/refer/apply right after OTP verify (signup welcome bonus)
+
+// UPDATED (referral flow):
+// -------------------------------------------------------------
+// - A referral link no longer jumps straight to the "Refer & Earn" tab.
+//   It used to end in "#refer", and the site's generic hash router
+//   (`if (location.hash.slice(1)) showTab(...)`) opened that tab
+//   automatically on load. The link below is now just the plain
+//   homepage URL (+ optional package), so a referred visitor lands on
+//   normal packages like anyone else.
+// - A referral link can optionally carry a package ("&pkg=ID&type=TYPE").
+//   That package is captured here and auto-opened (see
+//   tryOpenReferralInitialPackage below) so it's the one initially shown
+//   — but the visitor can still browse and pick any other package.
+// - REFERRAL_ATTR_* keys are separate from REF_STORAGE_KEY above and are
+//   NOT cleared after OTP verification — they persist across login so an
+//   enquiry/lead submitted anytime later (before or after login) still
+//   carries the original referral code + initial package. REF_STORAGE_KEY
+//   keeps its existing one-time behaviour untouched (signup welcome bonus).
+const REFERRAL_ATTR_CODE_KEY = "adw_referral_code";
+const REFERRAL_ATTR_PKG_ID_KEY = "adw_referral_initial_pkg_id";
+const REFERRAL_ATTR_PKG_TYPE_KEY = "adw_referral_initial_pkg_type";
+const REFERRAL_ATTR_PKG_NAME_KEY = "adw_referral_initial_pkg_name";
 
 (function captureReferralFromUrl(){
   const params = new URLSearchParams(location.search);
   const ref = params.get("ref");
-  if(ref) localStorage.setItem(REF_STORAGE_KEY, ref.trim().toUpperCase());
+  if(!ref) return;
+  const cleanRef = ref.trim().toUpperCase();
+  localStorage.setItem(REF_STORAGE_KEY, cleanRef);
+  localStorage.setItem(REFERRAL_ATTR_CODE_KEY, cleanRef);
+
+  const pkgId = (params.get("pkg") || "").trim();
+  const pkgType = (params.get("type") || "").trim();
+  if(pkgId && (pkgType === "india" || pkgType === "international")){
+    localStorage.setItem(REFERRAL_ATTR_PKG_ID_KEY, pkgId);
+    localStorage.setItem(REFERRAL_ATTR_PKG_TYPE_KEY, pkgType);
+  }
 })();
 
-function referralLinkFor(code){
-  return `${location.origin}${location.pathname}?ref=${code}#refer`;
+// Builds a referrer's shareable link. `pkg`, if given, is { id, type } —
+// attaches an "initially shown" package to the link without forcing it:
+// whoever opens the link can still browse and pick a different package.
+function referralLinkFor(code, pkg){
+  const base = `${location.origin}${location.pathname}?ref=${code}`;
+  if(pkg && pkg.id && pkg.type){
+    return `${base}&pkg=${encodeURIComponent(pkg.id)}&type=${encodeURIComponent(pkg.type)}`;
+  }
+  return base;
+}
+
+// Reads whatever referral attribution this browser currently has (persists
+// across login/OTP — see REFERRAL_ATTR_* keys above). Used to tag any
+// enquiry/lead the customer submits with Referral Code / Initial Package,
+// so attribution is never lost just because they logged in first.
+function getReferralAttribution(){
+  const code = localStorage.getItem(REFERRAL_ATTR_CODE_KEY) || "";
+  if(!code) return { code: "", initialPkgId: "", initialPkgType: "", initialPkgName: "" };
+  const initialPkgId = localStorage.getItem(REFERRAL_ATTR_PKG_ID_KEY) || "";
+  const initialPkgType = localStorage.getItem(REFERRAL_ATTR_PKG_TYPE_KEY) || "";
+  let initialPkgName = localStorage.getItem(REFERRAL_ATTR_PKG_NAME_KEY) || "";
+  if(initialPkgId && pkgDetailStore[initialPkgId] && pkgDetailStore[initialPkgId].name){
+    initialPkgName = pkgDetailStore[initialPkgId].name;
+  }
+  return { code, initialPkgId, initialPkgType, initialPkgName };
+}
+
+// If the referral link that brought this visitor here included a package
+// (?pkg=ID&type=TYPE), open that package's detail page once it's available
+// — shown initially, but the visitor remains free to close it and browse/
+// pick any other package normally. Called once per package list load
+// (mirrors tryOpenPkgFromCurrentUrl's existing pattern), guarded so it only
+// ever auto-opens once per page load.
+let referralInitialPkgOpened = false;
+async function tryOpenReferralInitialPackage(expectedType){
+  if(referralInitialPkgOpened || currentPkgDetail) return;
+  const params = new URLSearchParams(location.search);
+  const pkgId = (params.get("pkg") || "").trim();
+  const pkgType = (params.get("type") || "").trim();
+  if(!pkgId || pkgType !== expectedType) return;
+  referralInitialPkgOpened = true;
+  await openPkgDetail(pkgId, pkgType === "india" ? "india" : "international");
+  if(currentPkgDetail && currentPkgDetail.pkg && currentPkgDetail.pkg.name){
+    localStorage.setItem(REFERRAL_ATTR_PKG_NAME_KEY, currentPkgDetail.pkg.name);
+  }
 }
 
 function referEarningRowHTML(e){
@@ -2738,6 +2819,25 @@ function referEarningRowHTML(e){
         <div><span>Your Commission</span><strong>${e.commissionPercent}% · ${money(e.rewardAmount)}</strong></div>
       </div>
       <p>Credited on ${new Date(e.creditedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</p>
+    </div>
+  </div>`;
+}
+
+// One enquiry/lead that came in through this referral partner's link —
+// shows the package the link initially pointed to vs. what the customer
+// actually enquired about, and whether admin has verified it yet.
+function referLeadRowHTML(l){
+  return `
+  <div class="my-booking-card">
+    <div class="my-booking-info">
+      <h4>${escapeHtml(l.name || "Enquiry")}</h4>
+      <div class="my-booking-grid">
+        <div><span>Contact</span><strong>${escapeHtml(l.phone || l.email || "-")}</strong></div>
+        <div><span>Initial Package</span><strong>${escapeHtml(l.initialPackage || "General enquiry")}</strong></div>
+        <div><span>Final Package</span><strong>${escapeHtml(l.finalPackage || "-")}</strong></div>
+        <div><span>Status</span><strong>${l.referralVerified ? "Verified by admin ✅" : "Pending admin verification"}</strong></div>
+      </div>
+      <p>Enquired on ${new Date(l.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</p>
     </div>
   </div>`;
 }
@@ -2776,6 +2876,8 @@ async function loadReferUI(){
     approvedBox.style.display = which === "approved" ? "block" : "none";
     if(approvedAnonNote) approvedAnonNote.style.display = which === "approved-anon" ? "block" : "none";
     if(earningsBox) earningsBox.style.display = which === "approved" ? "block" : "none";
+    const referLeadsBoxEl = document.getElementById("referLeadsBox");
+    if(referLeadsBoxEl && which !== "approved") referLeadsBoxEl.style.display = "none";
   }
 
   // Not logged in: check status by email (public, no login needed) —
@@ -2824,19 +2926,40 @@ async function loadReferUI(){
       document.getElementById("referEarnedStat").textContent = money(data.rewardEarned);
       document.getElementById("referCommissionStat").textContent = `${data.commissionPercent}%`;
 
-      const link = referralLinkFor(data.code);
-      const waText = encodeURIComponent(`Book your next trip on AdmireDworld Travel — use my referral link and we both get travel credit: ${link}`);
-      document.getElementById("referWhatsapp").href = `https://wa.me/?text=${waText}`;
+      // Optional: attach a specific package to the shared link so whoever
+      // opens it initially sees that package (they can still pick any
+      // other one). Purely a link-generation convenience — populated from
+      // the same package lists already loaded on the page.
+      const pkgSelect = document.getElementById("referPkgSelect");
+      if(pkgSelect && !pkgSelect.dataset.filled){
+        const options = ['<option value="">General link (no package selected)</option>']
+          .concat(indiaPackages.map(p => `<option value="india::${p.id}">${escapeHtml(p.name)} (India)</option>`))
+          .concat(intlPackages.map(p => `<option value="international::${p.id}">${escapeHtml(p.name)} (International)</option>`));
+        pkgSelect.innerHTML = options.join("");
+        pkgSelect.dataset.filled = "1";
+      }
 
       const copyBtn = document.getElementById("referCopyBtn");
-      copyBtn.onclick = async ()=>{
-        try{
-          await navigator.clipboard.writeText(link);
-          showToast("Referral link copied!");
-        }catch{
-          showToast(link, 8000);
+      function refreshReferLink(){
+        let pkgArg = null;
+        if(pkgSelect && pkgSelect.value){
+          const [type, id] = pkgSelect.value.split("::");
+          pkgArg = { type, id };
         }
-      };
+        const link = referralLinkFor(data.code, pkgArg);
+        const waText = encodeURIComponent(`Book your next trip on AdmireDworld Travel — use my referral link and we both get travel credit: ${link}`);
+        document.getElementById("referWhatsapp").href = `https://wa.me/?text=${waText}`;
+        copyBtn.onclick = async ()=>{
+          try{
+            await navigator.clipboard.writeText(link);
+            showToast("Referral link copied!");
+          }catch{
+            showToast(link, 8000);
+          }
+        };
+      }
+      if(pkgSelect) pkgSelect.onchange = refreshReferLink;
+      refreshReferLink();
 
       if(earningsBox){
         const listEl = document.getElementById("referEarningsList");
@@ -2844,6 +2967,28 @@ async function loadReferUI(){
         const earnings = data.earnings || [];
         listEl.innerHTML = earnings.map(referEarningRowHTML).join("");
         emptyEl.style.display = earnings.length ? "none" : "block";
+      }
+
+      // Every enquiry/lead captured through this partner's referral link,
+      // regardless of whether it has turned into a confirmed booking yet —
+      // shows up here automatically as soon as the customer submits it.
+      // "Verified" reflects the admin's sign-off (see admin dashboard).
+      const referLeadsBox = document.getElementById("referLeadsBox");
+      if(referLeadsBox){
+        try{
+          const leadsRes = await fetch(`${API_BASE_URL}/api/leads/mine`, {
+            headers: { Authorization: `Bearer ${state.token}` },
+          });
+          const leadsData = await leadsRes.json().catch(()=>({}));
+          if(leadsRes.ok){
+            const rows = leadsData.leads || [];
+            const listEl = document.getElementById("referLeadsList");
+            const emptyEl = document.getElementById("referLeadsEmpty");
+            if(listEl) listEl.innerHTML = rows.map(referLeadRowHTML).join("");
+            if(emptyEl) emptyEl.style.display = rows.length ? "none" : "block";
+            referLeadsBox.style.display = "block";
+          }
+        }catch{ /* best-effort — don't block the rest of the tab if this fails */ }
       }
     } else if(data.status === "revoked"){
       showStatus("revoked");
@@ -2936,7 +3081,22 @@ async function applyPendingReferral(user){
 
 const _origApiPost = apiPost;
 apiPost = async function(path, body){
-  const data = await _origApiPost(path, body);
+  // Auto-tag any lead/enquiry with this browser's referral attribution
+  // (if any) — Referral Code + Initial Package — without every call site
+  // having to know about it. Never overrides a value the caller already
+  // set explicitly.
+  let outBody = body;
+  if(path === "/api/leads" && body){
+    const attribution = getReferralAttribution();
+    if(attribution.code){
+      outBody = {
+        ...body,
+        referralCode: body.referralCode || attribution.code,
+        initialPackage: body.initialPackage || attribution.initialPkgName || "",
+      };
+    }
+  }
+  const data = await _origApiPost(path, outBody);
   if(path === "/api/verify-otp" && data && data.user){
     applyPendingReferral(data.user);
     loadReferUI();
