@@ -1917,6 +1917,18 @@ function escapeHtml(str){
     .replace(/"/g, "&quot;");
 }
 
+// Strips stray markdown (## headings, **bold**, *italic*) that sometimes
+// ends up in a package/fixed-departure's day-wise title or description when
+// it was pasted in from an AI tool — so it never shows up as literal ## or
+// ** on the live site, even for older entries saved before the admin-side
+// itinerary parser started cleaning this automatically.
+function mdClean(str){
+  return String(str || "")
+    .replace(/^#{1,6}\s*/, "")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1");
+}
+
 // General (non-destination-specific) seasonal guidance by package category —
 // broad, widely-true travel knowledge, not a claim about any one place's
 // exact climate, and always paired with a caveat to confirm with the team.
@@ -2052,7 +2064,7 @@ function pkgDetailHTML(p){
       ${p.dayWise.map(d=>`
         <div class="pkg-day-row">
           <span class="pd-num">Day ${d.day}</span>
-          <div><strong>${d.title}</strong><p style="margin:2px 0 0;">${d.desc || ""}</p></div>
+          <div><strong>${mdClean(d.title)}</strong><p style="margin:2px 0 0;">${mdClean(d.desc) || ""}</p></div>
         </div>`).join("")}
     ` : `<p style="color:var(--ink-soft);">Detailed day-wise plan will be shared once your dates are confirmed.</p>`}
     <div class="pkg-inc-exc">
@@ -3471,11 +3483,11 @@ function fdDetailHTML(f){
     <div class="fd-day-row">
       <button class="fd-day-head" data-fd-day-toggle="${i}" type="button">
         <span class="fd-day-badge">Day<br>${d.day}</span>
-        <span class="fd-day-title">${d.title}</span>
+        <span class="fd-day-title">${mdClean(d.title)}</span>
         <span class="fd-day-chevron">›</span>
       </button>
       <div class="fd-day-body" data-fd-day-body="${i}" style="display:none;">
-        <p>${d.desc || ""}</p>
+        <p>${mdClean(d.desc) || ""}</p>
       </div>
     </div>`).join("");
 

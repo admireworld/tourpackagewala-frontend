@@ -434,10 +434,53 @@ function showToast(msg){
   setTimeout(()=>t.classList.remove("show"), 2600);
 }
 function parseDayWise(text){
-  return String(text||"").split("\n").map(l=>l.trim()).filter(Boolean).map((line,i)=>{
-    const [title, ...rest] = line.split("|");
-    return { day: i+1, title:(title||"").trim(), desc: rest.join("|").trim() };
-  });
+  // Backward compatible with the simple "Title | Description" one-line-per-day
+  // format, but also tolerant of full multi-line itineraries pasted in from
+  // AI tools (ChatGPT etc.) that use "## Day 1: ..." headers, "---" section
+  // breaks, and **bold**/markdown — those used to each become a separate,
+  // garbled "day". Now they get grouped and cleaned properly.
+  const stripMd = (s) => String(s || "")
+    .replace(/^#{1,6}\s*/, "")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1")
+    .trim();
+
+  const lines = String(text || "").split("\n").map(l => l.trim());
+  const days = [];
+  let current = null;
+
+  for (const line of lines) {
+    if (!line) continue;                 // blank line — paragraph gap, skip
+    if (/^-{3,}$/.test(line)) continue;   // "---" separator, skip
+
+    // "## Day 1: Title" / "Day 1 - Title" / "Day 1: Title" header
+    const headerMatch = line.match(/^#{0,6}\s*day\s*\d+\s*[:\-–—]?\s*(.*)$/i);
+    if (headerMatch) {
+      current = { day: days.length + 1, title: stripMd(headerMatch[1]) || `Day ${days.length + 1}`, desc: "" };
+      days.push(current);
+      continue;
+    }
+
+    // Classic one-line "Title | Description" format
+    if (line.includes("|")) {
+      const [title, ...rest] = line.split("|");
+      current = { day: days.length + 1, title: stripMd(title), desc: stripMd(rest.join("|")) };
+      days.push(current);
+      continue;
+    }
+
+    // Plain continuation line — append to the current day, or start a new
+    // day if nothing has started yet.
+    const cleaned = stripMd(line);
+    if (!cleaned) continue;
+    if (current) {
+      current.desc = current.desc ? `${current.desc} ${cleaned}` : cleaned;
+    } else {
+      current = { day: days.length + 1, title: cleaned, desc: "" };
+      days.push(current);
+    }
+  }
+  return days;
 }
 function parseList(text){ return String(text||"").split(",").map(s=>s.trim()).filter(Boolean); }
 
@@ -659,7 +702,7 @@ const PKG_FORM_FIELDS = [
   { id:"price", label:"Price (₹)", span:1, type:"number" },
   { id:"discountPrice", label:"Discount price (₹, optional)", span:1, type:"number" },
   { id:"desc", label:"Short description", span:2, type:"textarea" },
-  { id:"dayWise", label:"Day-wise itinerary — one line per day: Title | Description", span:2, type:"textarea" },
+  { id:"dayWise", label:"Day-wise itinerary — either \"Title | Description\" one line per day, OR paste a full AI-written itinerary as-is (## Day 1: ..., **bold**, --- breaks all handled automatically)", span:2, type:"textarea" },
   { id:"inclusions", label:"Inclusions (comma separated)", span:2, type:"textarea" },
   { id:"exclusions", label:"Exclusions (comma separated)", span:2, type:"textarea" },
 ];
