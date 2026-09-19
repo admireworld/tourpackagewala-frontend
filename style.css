@@ -660,6 +660,26 @@ blockquote cite{ font-size:0.82rem; color:var(--teal); font-weight:600; font-sty
 .pkg-inc-exc h4{ margin:0; color:var(--navy); font-size:0.95rem; }
 @media (max-width:600px){ .pkg-inc-exc{ grid-template-columns:1fr; } }
 
+/* ---------- Related (same-destination) packages — internal linking ----------
+   Shown only on a package's own detail page, and only when the site has
+   other LIVE packages for the same destination — see relatedPackagesHTML()
+   in script.js and buildRelatedPackagesHTML() in middleware.js. Every card
+   here links to a real /package/india/... URL, never a guessed one. */
+.pkg-related-section{
+  background:var(--cloud); border:1px solid var(--line); border-radius:var(--radius-l);
+  box-shadow:var(--shadow-card); padding:28px; margin-top:20px;
+}
+.pkg-related-section h2{ margin:0 0 14px; font-size:1.15rem; color:var(--navy); }
+.pkg-related-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.pkg-related-link{
+  display:block; padding:14px 16px; border:1px solid var(--line); border-radius:var(--radius-s);
+  text-decoration:none; transition:border-color .15s ease, transform .15s ease;
+}
+.pkg-related-link:hover{ border-color:var(--teal); transform:translateY(-2px); }
+.pkg-related-name{ display:block; font-weight:700; color:var(--navy); font-size:0.95rem; }
+.pkg-related-loc{ display:block; color:var(--ink-soft); font-size:0.82rem; margin-top:4px; }
+@media (max-width:600px){ .pkg-related-grid{ grid-template-columns:1fr; } }
+
 /* ---------- Package-page FAQ (AEO) ----------
    Always-visible <h2>/<h3>/<p> section (never an accordion/collapsed
    element), so the full question + answer text is plain, crawlable HTML

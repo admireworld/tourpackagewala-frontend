@@ -107,10 +107,61 @@ function buildDescription(p) {
     .trim();
 }
 
+/* ---------------------------------------------------------------------
+ * Related (same-destination) packages — internal linking, pre-rendered
+ * for crawlers. Mirrors isKashmirPackage()/relatedAnchorText()/
+ * getRelatedPackages()/relatedPackagesHTML() in script.js EXACTLY (same
+ * matching rule, same markup), so a bot that never runs script.js still
+ * sees the same "Related Kashmir Tour Packages" section and real links
+ * a JS-enabled visitor sees a moment later. If you change one, change
+ * the other. Every link is built from a package actually returned by
+ * GET /api/packages/india moments earlier in this same request — never
+ * a hardcoded id/name/URL.
+ * ------------------------------------------------------------------- */
+// Mirrors slugify() in script.js exactly.
+function slugify(str) {
+  return String(str || "").toLowerCase().trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80) || "package";
+}
+// Mirrors pkgDetailPath() in script.js exactly.
+function pkgPath(type, p) {
+  return `/package/${type}/${slugify(p.name)}--${p.id}`;
+}
+// Mirrors isKashmirPackage() in script.js exactly.
+function isKashmirPackage(p) {
+  const hay = `${p.name || ""} ${p.destination || ""} ${p.loc || ""}`.toLowerCase();
+  return hay.includes("kashmir");
+}
+// Mirrors relatedAnchorText() in script.js exactly.
+function relatedAnchorText(p) {
+  return p.name || "Kashmir Tour Package";
+}
+// Mirrors relatedPackagesHTML() in script.js exactly (given the same
+// already-fetched India packages list instead of reading pkgDetailStore).
+function buildRelatedPackagesHTML(current, allIndiaPackages) {
+  if (!isKashmirPackage(current)) return "";
+  const related = (allIndiaPackages || []).filter(p => p.id !== current.id && isKashmirPackage(p));
+  if (!related.length) return "";
+  return `
+    <section class="pkg-related-section" aria-labelledby="pkgRelatedHeading">
+      <h2 id="pkgRelatedHeading">Related Kashmir Tour Packages</h2>
+      <div class="pkg-related-grid">
+        ${related.map(p => `
+          <a class="pkg-related-link" href="${pkgPath("india", p)}">
+            <span class="pkg-related-name">${escapeHtml(relatedAnchorText(p))}</span>
+            <span class="pkg-related-loc">${escapeHtml(p.loc || p.destination || "")}</span>
+          </a>`).join("")}
+      </div>
+    </section>
+  `;
+}
+
 // Mirrors pkgDetailHTML() in script.js — same classes/structure, so this is visually
 // identical to what script.js renders a moment later. The ONLY <h1> on the page for this
 // request lives here (matches the required "Package Name – Duration" example exactly).
-function buildPkgDetailContent(p) {
+function buildPkgDetailContent(p, relatedHTML) {
   const hasDiscount = p.discountPrice && p.discountPrice < p.price;
   const dayWise = Array.isArray(p.dayWise) ? p.dayWise : [];
   const inclusions = Array.isArray(p.inclusions) ? p.inclusions : [];
@@ -157,6 +208,7 @@ function buildPkgDetailContent(p) {
     </div>
     <button class="btn-primary btn-block" style="margin-top:20px;" data-pkg-enquire="${escapeHtml(p.id)}">Book Now</button>
     </div>
+    ${relatedHTML || ""}
     ${buildPkgFaqHTML(p)}
   `;
 }
@@ -315,6 +367,23 @@ export default async function middleware(request) {
 
   if (!pkg || !title || !description) return; // nothing to inject — serve the normal static page
 
+  // Related Kashmir packages (see buildRelatedPackagesHTML() above) — only
+  // worth a second backend call when this page IS a Kashmir package. Same
+  // fail-quiet behaviour as the fetch above: if this call is slow/unreachable,
+  // the section is just omitted, never blocks or breaks the page.
+  let relatedHTML = "";
+  if (type === "india" && isKashmirPackage(pkg)) {
+    try {
+      const listRes = await fetchWithTimeout(`${API_BASE_URL}/api/packages/india`, BACKEND_TIMEOUT_MS);
+      if (listRes.ok) {
+        const listData = await listRes.json();
+        relatedHTML = buildRelatedPackagesHTML(pkg, listData && listData.packages);
+      }
+    } catch {
+      // leave relatedHTML empty — falls through to no related section
+    }
+  }
+
   let html;
   try {
     const pageRes = await fetch(new URL("/index.html", url.origin));
@@ -345,7 +414,7 @@ export default async function middleware(request) {
   // appends the package's own FAQ section, see buildPkgFaqHTML() above).
   html = html.replace(
     '<div class="pkg-detail-body" id="pkgDetailContent"></div>',
-    `<div class="pkg-detail-body" id="pkgDetailContent">${buildPkgDetailContent(pkg)}</div>`
+    `<div class="pkg-detail-body" id="pkgDetailContent">${buildPkgDetailContent(pkg, relatedHTML)}</div>`
   );
 
   // 4) Populate the FAQPage JSON-LD placeholder (index.html ships it as

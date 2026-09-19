@@ -2077,6 +2077,74 @@ function pkgDetailHTML(p){
   `;
 }
 
+/* ================================================================
+   RELATED (SAME-DESTINATION) PACKAGES — internal linking
+   -------------------------------------------------------------------
+   NEW/ADDITIVE — does not change pkgDetailHTML() or any existing
+   package-detail markup above; its output is appended after it in
+   openPkgDetail() below. Shows real, already-loaded packages for the
+   same destination on a package's own detail page — e.g. "Related
+   Kashmir Tour Packages" on a Kashmir package page. Every link is
+   built from an actual package already in pkgDetailStore (populated
+   live from the backend by loadIndiaPackagesFromBackend()) via the
+   same pkgDetailPath() used for real "View Details" links elsewhere,
+   so nothing here is a guessed or invented URL, and any Kashmir
+   package added later through the admin panel is picked up
+   automatically the next time this runs — no hardcoded id/name list.
+
+   Currently scoped to Kashmir (isKashmirPackage()) since that's the
+   destination asked for, but getRelatedPackages()/relatedPackagesHTML()
+   are written generically off the destination/loc/name fields so this
+   can be extended to group other destinations later without touching
+   openPkgDetail() or the rendering call site.
+
+   Mirrored (kept in sync on purpose) in middleware.js's
+   isKashmirPackage()/buildRelatedPackagesHTML() — that file fetches
+   the same India packages list server-side so this section is present
+   in the raw HTML served to crawlers/bots that don't run JavaScript.
+   If you change the matching rule or markup here, mirror it there too.
+================================================================ */
+function isKashmirPackage(p){
+  const hay = `${p.name || ""} ${p.destination || ""} ${p.loc || ""}`.toLowerCase();
+  return hay.includes("kashmir");
+}
+
+// Descriptive anchor text per SEO rules — the package's own real name,
+// used as-is. No suffix is ever appended (that previously caused
+// duplicate wording like "4 Days Kashmir Package Tour Package"), so the
+// anchor text always matches the package's actual title exactly.
+function relatedAnchorText(p){
+  return p.name || "Kashmir Tour Package";
+}
+
+// Other LIVE India packages that share a destination grouping with
+// `current` — right now that only means "both are Kashmir packages"
+// (see isKashmirPackage above). Reads from indiaPackages/pkgDetailStore,
+// which are only ever populated from the backend, never hardcoded.
+function getRelatedPackages(current){
+  if(!isKashmirPackage(current)) return [];
+  return indiaPackages
+    .map(basic => pkgDetailStore[basic.id] || basic)
+    .filter(p => p.id !== current.id && isKashmirPackage(p));
+}
+
+function relatedPackagesHTML(current){
+  const related = getRelatedPackages(current);
+  if(!related.length) return ""; // nothing to link to yet — section simply doesn't render
+  return `
+    <section class="pkg-related-section" aria-labelledby="pkgRelatedHeading">
+      <h2 id="pkgRelatedHeading">Related Kashmir Tour Packages</h2>
+      <div class="pkg-related-grid">
+        ${related.map(p => `
+          <a class="pkg-related-link" href="${pkgDetailPath("india", p)}" data-related-pkg="${p.id}">
+            <span class="pkg-related-name">${relatedAnchorText(p)}</span>
+            <span class="pkg-related-loc">${p.loc || p.destination || ""}</span>
+          </a>`).join("")}
+      </div>
+    </section>
+  `;
+}
+
 // Shared by both India and International grids: opens the full detail page
 // for a given package id, fetching it fresh from the backend if it isn't
 // already cached in pkgDetailStore (e.g. it was just added, or the initial
@@ -2108,10 +2176,11 @@ async function openPkgDetail(id, endpoint, fromUrl){
   const typeLabel = type === "india" ? "India" : "International";
   currentPkgDetail = { type, endpoint, pkg: full };
 
-  // FAQ section (see pkgFaqHTML/pkgFaqSchemaJSON above) is appended after
+  // Related-destination packages (see relatedPackagesHTML() above) and the
+  // FAQ section (see pkgFaqHTML/pkgFaqSchemaJSON above) are appended after
   // the existing detail markup — purely additive, pkgDetailHTML() itself
   // is untouched.
-  document.getElementById("pkgDetailContent").innerHTML = pkgDetailHTML(full) + pkgFaqHTML(full);
+  document.getElementById("pkgDetailContent").innerHTML = pkgDetailHTML(full) + relatedPackagesHTML(full) + pkgFaqHTML(full);
   openOverlay(pkgDetailOverlay);
   const modalEl = pkgDetailOverlay.querySelector(".modal");
   if(modalEl) modalEl.scrollTop = 0;
@@ -2249,8 +2318,17 @@ pkgEnquireOverlay.addEventListener("click", (e)=>{ if(e.target === pkgEnquireOve
 
 document.getElementById("pkgDetailContent").addEventListener("click", (e)=>{
   const btn = e.target.closest("[data-pkg-enquire]");
-  if(!btn || !currentPkgDetail) return;
-  openPkgEnquireForm(currentPkgDetail.pkg);
+  if(btn && currentPkgDetail){ openPkgEnquireForm(currentPkgDetail.pkg); return; }
+
+  // "Related Kashmir Tour Packages" card — a real /package/india/... <a
+  // href> (works even if JS hasn't run yet), intercepted here only to
+  // swap the detail page in-place via the existing SPA flow instead of a
+  // full reload.
+  const relatedLink = e.target.closest("[data-related-pkg]");
+  if(relatedLink){
+    e.preventDefault();
+    openPkgDetail(relatedLink.dataset.relatedPkg, "india", false);
+  }
 });
 
 // Deep-link support: if the page loaded directly on a /package/india/... or
