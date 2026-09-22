@@ -670,6 +670,16 @@
         </div>
       </div>
 
+      <!-- ---------- Children (optional, informational only — see script.js:
+           these NEVER affect the price/total; only hotel+sightseeing+
+           transfers+visa+adult "guests" count do that on the server). ---------- -->
+      <div class="f-field f-field--wide cwiz-children-wrap">
+        <label>Children <span class="cwiz-children-hint">(optional — doesn't change the price)</span></label>
+        <div id="cwizChildrenList" class="cwiz-children-list"></div>
+        <button type="button" class="cwiz-add-child-btn" id="cwizAddChildBtn">+ Add Child</button>
+        <p class="field-error" id="cwizChildrenMsg"></p>
+      </div>
+
       <label class="cwiz-checkbox">
         <input type="checkbox" id="cwizLandOnly"> Land Only (I'll arrange my own flights)
       </label>

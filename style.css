@@ -1345,6 +1345,38 @@ blockquote cite{ font-size:0.82rem; color:var(--teal); font-weight:600; font-sty
 .cwiz-radio input{ accent-color:var(--navy); width:18px; height:18px; }
 .cwiz-checkbox{ display:flex; align-items:center; gap:8px; font-size:0.88rem; color:var(--ink-soft); margin:6px 0 18px; cursor:pointer; }
 .cwiz-checkbox input{ accent-color:var(--navy); width:16px; height:16px; }
+
+.cwiz-children-wrap{ margin-bottom:18px; }
+.cwiz-children-hint{ font-weight:400; color:var(--ink-soft); font-size:0.78rem; }
+.cwiz-children-list{ display:flex; flex-direction:column; gap:8px; margin:8px 0; }
+.cwiz-child-row{
+  display:flex; align-items:center; gap:10px;
+  background:var(--sand); border:1px solid var(--line); border-radius:var(--radius-m);
+  padding:8px 10px;
+}
+.cwiz-child-row select{
+  border:1px solid var(--line); border-radius:var(--radius-s);
+  padding:7px 9px; font-size:0.85rem; color:var(--ink); background:var(--cloud);
+}
+.cwiz-child-label{ font-size:0.85rem; font-weight:600; color:var(--ink); min-width:56px; }
+.cwiz-child-age{ flex:1; max-width:160px; }
+.cwiz-child-remove{
+  margin-left:auto; width:26px; height:26px; border-radius:50%;
+  border:1px solid var(--line); background:var(--cloud); color:var(--coral-deep);
+  font-size:1rem; line-height:1; cursor:pointer;
+}
+.cwiz-child-remove:hover{ background:var(--coral); color:var(--cloud); border-color:var(--coral); }
+.cwiz-add-child-btn{
+  border:1px dashed var(--teal); color:var(--teal-deep); background:transparent;
+  border-radius:var(--radius-m); padding:8px 14px; font-size:0.85rem; font-weight:600;
+  cursor:pointer;
+}
+.cwiz-add-child-btn:hover{ background:var(--sand); }
+.cwiz-add-child-btn:disabled{ opacity:0.5; cursor:default; }
+.cwiz-child-note{
+  color:var(--coral-deep); background:var(--sand); border:1px solid var(--line);
+  border-radius:var(--radius-m); padding:8px 12px; margin:10px 0; font-size:0.85rem;
+}
 .cwiz-search-btn{ width:100%; }
 
 /* ---- Step 2: builder layout ---- */
@@ -1468,6 +1500,7 @@ blockquote cite{ font-size:0.82rem; color:var(--teal); font-weight:600; font-sty
   .cwiz-print-area li{ margin-bottom:6px; font-size:0.92rem; }
   .cwiz-print-total{ font-size:1.3rem; font-weight:700; color:#2B3968; }
   .cwiz-print-footer{ margin-top:30px; font-size:0.8rem; color:#5B6472; }
+  .cwiz-print-area .cwiz-child-note{ color:#B23A2E; font-weight:700; border:1px solid #B23A2E; background:none; }
 }
 
 @media (max-width:900px){

@@ -239,7 +239,7 @@ tr:hover td{background:var(--sand-soft);}
           <button class="cz-tab" data-cz="sightseeing">Sightseeing</button>
           <button class="cz-tab" data-cz="transfers">Pickup &amp; Drop</button>
           <button class="cz-tab" data-cz="visas">Visas</button>
-          <button class="cz-tab" data-cz="tax">Tax &amp; Fees</button>
+          <button class="cz-tab" data-cz="tax">Tax &amp; Margin</button>
           <button class="cz-tab" data-cz="enquiries">Enquiries</button>
         </div>
         <div class="subsection active" id="cz-sub-hotels">
@@ -280,14 +280,19 @@ tr:hover td{background:var(--sand-soft);}
         </div>
         <div class="subsection" id="cz-sub-tax">
           <div class="card">
-            <h3>Taxes &amp; fees</h3>
-            <p class="muted" style="margin:0 0 14px;">This single percentage (e.g. GST) is added automatically on top of hotel + sightseeing + pickup/drop + visa when the final total is calculated. The customer never sees it as a separate line — it is always baked into the one combined total shown to them.</p>
+            <h3>Taxes, fees &amp; margin</h3>
+            <p class="muted" style="margin:0 0 14px;">These percentages are added automatically on top of hotel + sightseeing + pickup/drop + visa when the final total is calculated. Margin is applied first (your own markup on the base cost), then tax is applied on top of that. The customer never sees either as a separate line — both are always baked into the one combined total shown to them.</p>
             <div class="form-grid">
               <div class="field">
                 <label>GST / Service Tax (%)</label>
                 <input id="czTaxPercent" type="number" min="0" max="100" step="0.01">
               </div>
+              <div class="field">
+                <label>Apna Margin (%)</label>
+                <input id="czMarginPercent" type="number" min="0" max="100" step="0.01" placeholder="Ex: 20">
+              </div>
             </div>
+            <p class="muted" style="margin:10px 0 0;">Default is 0% — existing quotes/packages keep showing the exact same price until you set this above 0.</p>
             <div style="margin-top:12px;"><button class="btn" onclick="saveCzTax()">Save</button></div>
             <div class="ok-msg" id="czTaxMsg"></div>
           </div>
@@ -1025,7 +1030,10 @@ async function loadCustomize(){
           <button class="btn small coral" data-cz-del="${i.id}" data-cz-type="${type}">Delete</button>
         </td></tr>`).join("")}</tbody></table>`;
     });
-    if(data.settings) document.getElementById("czTaxPercent").value = data.settings.taxPercent;
+    if(data.settings){
+      document.getElementById("czTaxPercent").value = data.settings.taxPercent;
+      document.getElementById("czMarginPercent").value = data.settings.marginPercentage ?? 0;
+    }
   }catch(err){
     ["hotels","sightseeing","transfers","visas"].forEach(type=>{
       document.getElementById(`czList-${type}`).innerHTML = `<div class="empty">${esc(err.message)}</div>`;
@@ -1100,11 +1108,12 @@ async function addCzItem(type){
 async function saveCzTax(){
   const msg = document.getElementById("czTaxMsg");
   msg.textContent = "";
-  const val = document.getElementById("czTaxPercent").value;
+  const taxVal = document.getElementById("czTaxPercent").value;
+  const marginVal = document.getElementById("czMarginPercent").value;
   try{
-    await apiSendAdmin(`/api/customize/settings`, "PUT", { taxPercent: Number(val) });
+    await apiSendAdmin(`/api/customize/settings`, "PUT", { taxPercent: Number(taxVal), marginPercentage: Number(marginVal) });
     msg.style.color = "var(--teal-deep)"; msg.textContent = "Saved.";
-    showToast("Tax percentage updated");
+    showToast("Tax & margin updated");
   }catch(err){ msg.style.color = "var(--coral-deep)"; msg.textContent = err.message; }
 }
 

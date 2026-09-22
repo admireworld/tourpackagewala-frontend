@@ -971,7 +971,11 @@ let customizeOptions = null; // { destinations, hotels, sightseeing, transfers, 
 const cwiz = {
   destination: "", rooms: 1, guests: 2, rating: "any", date: "", nights: 4, landOnly: false,
   hotelId: null, sightseeingIds: new Set(), transferIds: new Set(), visaIds: new Set(), total: 0,
+  children: [], // [{ age: Number|null }] — informational only, NEVER sent to /quote and NEVER
+  // affects cwiz.total: pricing is driven purely by "guests" (adults) + selected
+  // hotel/sightseeing/transfers/visa. Saved to the backend only at /enquiry time.
 };
+const CWIZ_MAX_CHILDREN = 4;
 
 const CWIZ_STARS = { Budget: 3, Standard: 3, Deluxe: 4, Luxury: 5 };
 
@@ -982,6 +986,57 @@ const CWIZ_STARS = { Budget: 3, Standard: 3, Deluxe: 4, Luxury: 5 };
 // destinations are intentionally left out — no visa needed for those.
 // Add an entry here whenever a new international destination + visa is added.
 const CWIZ_DEST_COUNTRY = { Dubai: "UAE", Thailand: "Thailand", Bali: "Indonesia" };
+
+/* ---------- Children (Customize tab only) ----------
+   Purely informational: rendered from cwiz.children, capped at
+   CWIZ_MAX_CHILDREN, each child is just { age }. Never included in the
+   /quote request and never factored into cwiz.total — only sent along
+   with the rest of the booking details at /enquiry time (see the
+   cwizSaveBtn handler below), so the team has it on file without it
+   ever touching the price shown to the customer. */
+function cwizChildAgeOptionsHTML(selected){
+  const opts = ['<option value="">Age</option>'];
+  for(let age = 0; age <= 11; age++){
+    opts.push(`<option value="${age}"${Number(selected) === age ? " selected" : ""}>${age} yr${age === 1 ? "" : "s"}</option>`);
+  }
+  return opts.join("");
+}
+function renderCwizChildren(){
+  const list = document.getElementById("cwizChildrenList");
+  const addBtn = document.getElementById("cwizAddChildBtn");
+  if(!list || !addBtn) return;
+  list.innerHTML = cwiz.children.map((child, idx) => `
+    <div class="cwiz-child-row" data-child-idx="${idx}">
+      <select class="cwiz-child-label" disabled><option>Child ${idx + 1}</option></select>
+      <select class="cwiz-child-age" data-child-age-idx="${idx}">${cwizChildAgeOptionsHTML(child.age)}</select>
+      <button type="button" class="cwiz-child-remove" data-child-remove-idx="${idx}" aria-label="Remove child ${idx + 1}">&times;</button>
+    </div>`).join("");
+  addBtn.disabled = cwiz.children.length >= CWIZ_MAX_CHILDREN;
+  addBtn.textContent = cwiz.children.length >= CWIZ_MAX_CHILDREN ? "Max 4 children" : "+ Add Child";
+}
+document.getElementById("cwizAddChildBtn")?.addEventListener("click", ()=>{
+  const msgEl = document.getElementById("cwizChildrenMsg");
+  if(msgEl) msgEl.textContent = "";
+  if(cwiz.children.length >= CWIZ_MAX_CHILDREN){
+    if(msgEl) msgEl.textContent = "You can add up to 4 children.";
+    return;
+  }
+  cwiz.children.push({ age: null });
+  renderCwizChildren();
+});
+document.getElementById("cwizChildrenList")?.addEventListener("click", (e)=>{
+  const btn = e.target.closest("[data-child-remove-idx]");
+  if(!btn) return;
+  cwiz.children.splice(parseInt(btn.dataset.childRemoveIdx, 10), 1);
+  renderCwizChildren();
+});
+document.getElementById("cwizChildrenList")?.addEventListener("change", (e)=>{
+  const sel = e.target.closest("[data-child-age-idx]");
+  if(!sel) return;
+  const idx = parseInt(sel.dataset.childAgeIdx, 10);
+  if(cwiz.children[idx]) cwiz.children[idx].age = sel.value === "" ? null : parseInt(sel.value, 10);
+});
+renderCwizChildren();
 
 async function loadCustomizeOptions(){
   if(customizeOptions) return; // already loaded
@@ -1066,6 +1121,8 @@ document.getElementById("cwizSearchBtn").addEventListener("click", async ()=>{
   cwiz.sightseeingIds = new Set();
   cwiz.transferIds = new Set();
   cwiz.visaIds = new Set();
+  cwiz.children = [];
+  renderCwizChildren();
 
   if(state.user){
     document.getElementById("cwizName").value = state.user.name || "";
@@ -1218,10 +1275,21 @@ function cwizItineraryDays(){
   return days;
 }
 
+// Shown wherever the itinerary is generated (on-screen Itinerary tab AND the
+// downloaded Quote PDF) whenever at least one child (with an age picked) has
+// been added — pricing never includes children (see fetchCwizTotal()), so
+// this makes that explicit to the customer instead of leaving it silent.
+function cwizChildNoteHTML(){
+  const hasChild = cwiz.children.some(c => Number.isFinite(c.age));
+  if(!hasChild) return "";
+  return `<p class="cwiz-child-note"><strong>NOTE: Child cost not included - Please contact us for child pricing</strong></p>`;
+}
+
 function updateCwizItinerary(){
   const days = cwizItineraryDays();
   document.getElementById("cwizPanelItinerary").innerHTML = `
     <div class="cwiz-itinerary-note">Editing hotels/sightseeing above updates this itinerary automatically.</div>
+    ${cwizChildNoteHTML()}
     ${days.map(d => `
       <div class="cwiz-itin-day">
         <span class="cwiz-itin-daynum">Day ${d.day}</span>
@@ -1317,6 +1385,7 @@ document.getElementById("cwizSaveBtn").addEventListener("click", async ()=>{
       month: cwiz.date,
       style: cwiz.landOnly ? "Land only" : "",
       travellers: cwiz.guests,
+      children: cwiz.children.filter(c => Number.isFinite(c.age)).map(c => ({ age: c.age })),
       notes: `Rooms: ${cwiz.rooms}. Self-built itinerary: ${itinerarySummary}`,
       name, phone, email,
       hotelId: cwiz.hotelId,
@@ -1378,6 +1447,7 @@ document.getElementById("cwizPdfBtn").addEventListener("click", async ()=>{
     <h3>Visa</h3>
     <p>${visaNames.join(", ") || "Not applicable / none selected"}</p>
     <h3>Day-wise Itinerary</h3>
+    ${cwizChildNoteHTML()}
     <ul>${days.map(d => `<li><strong>Day ${d.day} — ${d.title}:</strong> ${d.desc}</li>`).join("")}</ul>
     <h3>Total Net Price</h3>
     <p class="cwiz-print-total">${money(cwiz.total)}</p>
