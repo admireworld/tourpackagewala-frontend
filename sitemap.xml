@@ -11,7 +11,6 @@
     <priority>0.3</priority>
   </url>
 
-  <!-- India packages (/package/india/<slug>--<id>) -->
   <url><loc>https://www.tourpackagewala.in/package/india/kashmir-valley-escape--in1</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://www.tourpackagewala.in/package/india/kerala-backwaters--in2</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://www.tourpackagewala.in/package/india/royal-rajasthan--in3</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
@@ -19,16 +18,10 @@
   <url><loc>https://www.tourpackagewala.in/package/india/himachal-hills--in5</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://www.tourpackagewala.in/package/india/meghalaya-offbeat--in6</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
 
-  <!-- International packages (/package/international/<slug>--<id>) -->
   <url><loc>https://www.tourpackagewala.in/package/international/bali-island-retreat--it1</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://www.tourpackagewala.in/package/international/dubai-city-lights--it2</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://www.tourpackagewala.in/package/international/switzerland-alps--it3</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://www.tourpackagewala.in/package/international/maldives-overwater--it4</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://www.tourpackagewala.in/package/international/thailand-highlights--it5</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://www.tourpackagewala.in/package/international/singapore-explorer--it6</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-
-  <!-- NOTE: these package URLs are generated from the current seed/backend
-       data by generate-sitemap.js — re-run it (or wire it into your deploy)
-       whenever packages are added/edited/removed on the backend, since this
-       file is static and won't update itself. See that script for details. -->
 </urlset>
