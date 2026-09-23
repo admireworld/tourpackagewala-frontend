@@ -4570,3 +4570,83 @@ async function loadFixedAvailability(fixedId){
     loadReviews();
   }
 })();
+
+/* ================================================================
+   SITE-WIDE DESTINATION SEARCH (header search box)
+   -------------------------------------------------------------------
+   Purely additive: does not touch indiaPackages / intlPackages /
+   allPackages / renderAll / packageCardHTML / showTab / any existing
+   form (hero "Get Instant Quotes" search stays exactly as it was).
+   Typing a destination (e.g. "Kashmir") and hitting Enter searches
+   across ALL India + International ready-made packages by name,
+   route/location and description, and shows every match in a new
+   "Search Results" tab using the same package card UI as the rest
+   of the site.
+================================================================ */
+(function initSiteSearch(){
+  const form = document.getElementById("siteSearchForm");
+  const input = document.getElementById("siteSearchInput");
+  const grid = document.getElementById("searchGrid");
+  const noResults = document.getElementById("searchNoResults");
+  const titleEl = document.getElementById("searchResultsTitle");
+  const subEl = document.getElementById("searchResultsSub");
+  const goCustomizeBtn = document.getElementById("searchGoCustomizeBtn");
+  if(!form || !input || !grid) return;
+
+  function normalize(str){
+    return (str || "").toString().toLowerCase();
+  }
+
+  function matchesQuery(p, q){
+    return normalize(p.name).includes(q) ||
+           normalize(p.loc).includes(q) ||
+           normalize(p.desc).includes(q) ||
+           normalize(p.cat).includes(q);
+  }
+
+  function runSiteSearch(rawQuery){
+    const q = normalize(rawQuery).trim();
+    if(!q) return;
+
+    // allPackages is kept live (india + international) by the existing
+    // loadIndiaPackagesFromBackend()/loadIntlPackagesFromBackend() code.
+    const matches = allPackages.filter(p => matchesQuery(p, q));
+
+    titleEl.textContent = matches.length
+      ? `Packages for "${rawQuery.trim()}"`
+      : `No packages found for "${rawQuery.trim()}"`;
+    subEl.textContent = matches.length
+      ? `${matches.length} package${matches.length > 1 ? "s" : ""} found.`
+      : "";
+
+    if(matches.length){
+      grid.style.display = "";
+      noResults.style.display = "none";
+      grid.innerHTML = matches
+        .map(p => packageCardHTML(p, indiaPackages.some(ip => ip.id === p.id) ? "india" : "international"))
+        .join("");
+    }else{
+      grid.style.display = "none";
+      grid.innerHTML = "";
+      noResults.style.display = "";
+    }
+
+    showTab("search");
+  }
+
+  form.addEventListener("submit", (e)=>{
+    e.preventDefault();
+    runSiteSearch(input.value);
+  });
+
+  // Same card behaviour (View Full Details / Book now) as #homeFeatured,
+  // which also mixes India + International cards in one grid.
+  grid.addEventListener("click", (e)=>
+    handlePkgCardClick(e, (id)=> indiaPackages.some(p => p.id === id) ? "india" : "international")
+  );
+
+  goCustomizeBtn?.addEventListener("click", ()=>{
+    document.getElementById("cwizDestination").value = input.value.trim();
+    showTab("customize");
+  });
+})();
