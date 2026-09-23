@@ -9,12 +9,13 @@
      Tracks pageviews automatically; custom conversion events (bookings,
      leads, wedding enquiries) are fired from js/script.js — see the
      gtag('event', ...) calls near each successful form submission. -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-2XDZEK9MRG"></script>
+<!-- Google tag (gtag.js) — additional GA4 stream -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-2WT1V9B7Y7"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
-  gtag('config', 'G-2XDZEK9MRG');
+  gtag('config', 'G-2WT1V9B7Y7');
 </script>
 
 <!-- ============ PRIMARY SEO ============ -->
@@ -602,15 +603,7 @@
   </div>
 </section>
 
-<!-- ============ CUSTOMIZE PACKAGE ============
-     REDESIGNED — step 1 is a quote-style search card, step 2 is a
-     build-your-own-itinerary screen (Hotels / Sightseeing / Transfers /
-     Visa / Itinerary tabs + a live-total summary sidebar with Save & Book,
-     Share and Download Quote PDF), matching the "Instant Quotes" flow.
-     Same backend endpoints as before — /api/customize/options, /quote and
-     /enquiry — plus admin-configurable taxes & fees (GST) applied on the
-     server. The browser still never sees individual item prices or the
-     tax rate, only the one combined total. ============ -->
+<!-- ============ CUSTOMIZE PACKAGE ============ -->
 <section class="tab-panel" id="tab-customize" data-panel="customize">
   <div class="panel-hero panel-hero--custom">
     <p class="hero-kicker">Customize Package</p>
@@ -620,7 +613,6 @@
 
   <div class="section">
 
-    <!-- ---------- STEP 1: search card ---------- -->
     <div class="cwiz-search-card" id="cwizSearchStep">
       <div class="cwiz-mode-toggle">
         <label class="cwiz-radio">
@@ -670,9 +662,6 @@
         </div>
       </div>
 
-      <!-- ---------- Children (optional, informational only — see script.js:
-           these NEVER affect the price/total; only hotel+sightseeing+
-           transfers+visa+adult "guests" count do that on the server). ---------- -->
       <div class="f-field f-field--wide cwiz-children-wrap">
         <label>Children <span class="cwiz-children-hint">(optional — doesn't change the price)</span></label>
         <div id="cwizChildrenList" class="cwiz-children-list"></div>
@@ -688,7 +677,6 @@
       <button type="button" class="btn-primary cwiz-search-btn" id="cwizSearchBtn">Get Instant Itinerary</button>
     </div>
 
-    <!-- ---------- STEP 1b: offline inquiry (quick contact form, shown instead of the builder) ---------- -->
     <form class="custom-form" id="cwizOfflineForm" style="display:none;">
       <p class="modal-sub">Prefer our team to plan it for you? Leave your details and we'll call you back with a custom itinerary.</p>
       <div class="form-grid">
@@ -701,7 +689,6 @@
       <button type="submit" class="btn-primary">Request a callback</button>
     </form>
 
-    <!-- ---------- STEP 2: itinerary builder ---------- -->
     <div class="cwiz-builder" id="cwizBuilder" style="display:none;">
       <div class="cwiz-builder-left">
         <div class="cwiz-tabs" id="cwizTabs">
@@ -717,11 +704,6 @@
         <div class="cwiz-panel" id="cwizPanelTransfers"></div>
         <div class="cwiz-panel" id="cwizPanelVisa"></div>
         <div class="cwiz-panel" id="cwizPanelItinerary"></div>
-        <!-- Final step — this is the ONLY place the customer sees a price.
-             Hotels/Sightseeing/Transfers/Visa tabs above never show a
-             running cost per selection; the one all-inclusive total only
-             appears here, once they've picked what they want and come to
-             review it. See renderCwizReview()/recalcCwizTotal() in script.js. -->
         <div class="cwiz-panel" id="cwizPanelReview"></div>
       </div>
 
@@ -761,7 +743,6 @@
       </aside>
     </div>
 
-    <!-- Admin-only: appears when the page is opened with ?admin=1 in the URL -->
     <div class="blog-admin" id="customizeAdminBox" style="display:none; max-width:760px;">
       <h4>Manage customize options (admin)</h4>
       <p class="modal-sub">Add, edit or delete hotel, sightseeing, pickup/drop and visa items here. The customer will always see only one combined total — never individual amounts.</p>
@@ -975,10 +956,6 @@
     <div class="refer-box" id="referLoggedIn">
       <h3>Your referral partner status</h3>
 
-      <!-- Application form — shown only before anything has been submitted yet.
-           No login required to fill this in. Submitting this does NOT
-           generate a working affiliate link; it only creates a "pending"
-           request for our team to review. -->
       <div id="referApplyBox" style="display:none;">
         <p>Fill this in to apply as a referral partner / influencer. Our team reviews every application — your affiliate link is generated only after approval.</p>
         <form class="custom-form" id="referApplyForm">
@@ -1028,9 +1005,6 @@
         <div style="margin-top:12px;"><button class="btn-primary" id="referReapplyBtn">Apply again</button></div>
       </div>
 
-      <!-- Shown when someone applied WITHOUT logging in and an admin has
-           already approved them — their live link/earnings need a login
-           (same email) to display, so this just points them there. -->
       <div class="refer-status-note refer-status-note--approved-anon" id="referApprovedAnonNote" style="display:none;">
         🎉 You're approved as a referral partner! Log in with the same email you applied with to see your referral link, commission % and earnings.
         <div style="margin-top:12px;"><button class="btn-primary" id="referApprovedAnonLoginBtn">Log in</button></div>
@@ -1091,7 +1065,6 @@
       </div>
     </div>
 
-    <!-- Admin-only: appears when the page is opened with ?admin=1 in the URL -->
     <div class="blog-admin" id="bookingsAdminBox" style="display:none; max-width:680px;">
       <h4>Manage bookings (admin)</h4>
       <p class="modal-sub">As soon as a booking's payment comes in, click "Mark confirmed" here. If that customer originally came through a referral link, the referrer will automatically be credited a % reward and get an email asking for their payment scanner.</p>
@@ -1146,7 +1119,6 @@
     </div>
     <div class="card-grid" id="blogList"></div>
 
-    <!-- Admin-only: appears when the page is opened with ?admin=1 in the URL -->
     <div class="blog-admin" id="blogAdminBox" style="display:none;">
       <h4>Set tomorrow's topic (admin)</h4>
       <p class="modal-sub">If left blank, the AI will automatically choose the next topic itself.</p>
@@ -1292,11 +1264,7 @@
   </div>
 </div>
 
-<!-- ============ PACKAGE DETAIL PAGE (destination/day-wise/hotel/inclusions/exclusions) ============
-     A real, dedicated page — own URL (/package/india|international/slug--id), own <title> and
-     meta description, pushed via history.pushState — not a popup: no dark backdrop, no small
-     centered box, full-width scrollable layout with its own top bar, so it can be shared,
-     bookmarked, opened directly in a new tab, and indexed with its own SEO-friendly name. -->
+<!-- ============ PACKAGE DETAIL PAGE ============ -->
 <div class="modal-overlay" id="pkgDetailOverlay">
   <div class="modal pkg-detail-page">
     <div class="pkg-detail-topbar">
@@ -1310,12 +1278,7 @@
   </div>
 </div>
 
-<!-- ============ BLOG DETAIL PAGE ("Read full post") ============
-     A real, dedicated page — own URL (/blog/<slug>), own <title> and
-     meta description, pushed via history.pushState — reuses the same
-     full-page topbar/body layout built for the Package Detail Page
-     above (see #pkgDetailOverlay), just with its own overlay id so
-     the two never collide. -->
+<!-- ============ BLOG DETAIL PAGE ============ -->
 <div class="modal-overlay" id="blogDetailOverlay">
   <div class="modal pkg-detail-page">
     <div class="pkg-detail-topbar">
@@ -1329,10 +1292,7 @@
   </div>
 </div>
 
-<!-- ============ PACKAGE ENQUIRY / "BOOK NOW" QUERY FORM ============
-     Opened from the package detail page's "Book Now" button. Just name + phone —
-     no OTP/login required — submits straight to /api/leads (source: package_enquiry)
-     so the sales team gets it in Admin Dashboard → Leads & Conversions. -->
+<!-- ============ PACKAGE ENQUIRY / "BOOK NOW" QUERY FORM ============ -->
 <div class="modal-overlay" id="pkgEnquireOverlay">
   <div class="modal">
     <button class="modal-close" data-close="pkgEnquireOverlay">&times;</button>
@@ -1340,7 +1300,7 @@
   </div>
 </div>
 
-<!-- ============ FIXED DEPARTURE DETAIL MODAL (gallery/price/itinerary/hotels/T&C) ============ -->
+<!-- ============ FIXED DEPARTURE DETAIL MODAL ============ -->
 <div class="modal-overlay" id="fixedDetailOverlay">
   <div class="modal booking-modal fd-modal">
     <button class="modal-close" data-close="fixedDetailOverlay">&times;</button>
@@ -1348,7 +1308,7 @@
   </div>
 </div>
 
-<!-- ============ FIXED DEPARTURE PHOTO LIGHTBOX (view full-size images) ============ -->
+<!-- ============ FIXED DEPARTURE PHOTO LIGHTBOX ============ -->
 <div class="modal-overlay" id="photoLightboxOverlay">
   <div class="modal photo-lightbox-modal">
     <button class="modal-close" data-close="photoLightboxOverlay">&times;</button>
@@ -1359,15 +1319,10 @@
 <!-- ============ TOAST (for demo OTP notice) ============ -->
 <div class="toast" id="toast"></div>
 
-<!-- Printable itinerary summary (Customize Package) — a direct child of
-     <body> on purpose, so the print stylesheet can hide every other
-     top-level section and show only this one when "Download Quote PDF"
-     triggers the browser's print/Save-as-PDF dialog. -->
+<!-- Printable itinerary summary (Customize Package) -->
 <div id="cwizPrintArea" class="cwiz-print-area"></div>
 
-<!-- ============ EMAILJS (sends the login OTP straight from the browser —
-     see EMAILJS_PUBLIC_KEY / EMAILJS_SERVICE_ID / EMAILJS_TEMPLATE_ID near
-     the top of script.js, and frontend/README-EMAILJS.md for setup) ============ -->
+<!-- ============ EMAILJS ============ -->
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
 <script src="script.js?v=6"></script>
