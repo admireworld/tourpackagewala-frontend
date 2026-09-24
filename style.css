@@ -1636,3 +1636,43 @@ img, video{ max-width:100%; height:auto; }
 .aw-reviews-track{ display:flex; gap:20px; width:max-content; animation:aw-scroll 40s linear infinite; padding-left:16px }
 @keyframes aw-scroll{ 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
 #aw-reviews-section:hover .aw-reviews-track, .aw-reviews-track:hover{ animation-play-state:paused }
+
+/* ============ In-page destination search bar (above package grids) ============
+   Additive only — used on Home "Popular right now", India Packages,
+   International Packages and Search Results. Header search is unchanged. */
+.pkg-search-form{
+  display:flex; align-items:center; gap:10px;
+  max-width:640px; margin:0 0 28px;
+  background:var(--cloud); border:1px solid var(--line);
+  border-radius:99px; padding:6px 6px 6px 18px;
+  box-shadow:var(--shadow-card);
+  transition:border-color 0.2s, box-shadow 0.2s;
+}
+.pkg-search-form:focus-within{ border-color:var(--amber); box-shadow:0 0 0 3px rgba(217,169,78,0.18); }
+.pkg-search-ic{ color:var(--ink-soft); flex-shrink:0; }
+.pkg-search-input{
+  flex:1; min-width:0; border:none; background:none; outline:none;
+  font-size:0.95rem; color:var(--navy); padding:9px 0;
+}
+.pkg-search-input::placeholder{ color:var(--ink-soft); }
+.pkg-search-btn{
+  background:var(--coral); color:var(--cloud);
+  font-weight:700; font-size:0.9rem;
+  padding:10px 24px; border-radius:99px; flex-shrink:0;
+  transition:transform 0.15s ease, background 0.2s;
+}
+.pkg-search-btn:hover{ background:var(--coral-deep); transform:translateY(-1px); }
+@media (max-width:480px){
+  .pkg-search-form{ padding-left:14px; margin-bottom:22px; }
+  .pkg-search-input{ font-size:0.88rem; }
+  .pkg-search-btn{ padding:9px 16px; font-size:0.86rem; }
+}
+
+/* ============ Home hero — reduced empty gap below the search card ============
+   Additive override: the hero used to be forced up to 720px tall on wide
+   screens, leaving ~210px of empty space between the "Get Instant Quotes"
+   card and the quick-nav cards. Now it is capped at 580px (still tall enough
+   for the slider photo, dots and label). Mobile (<=640px) is unchanged. */
+@media (min-width:641px){
+  .hero{ min-height: clamp(520px, 46vw, 580px); }
+}

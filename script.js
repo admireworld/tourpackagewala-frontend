@@ -4650,3 +4650,70 @@ async function loadFixedAvailability(fixedId){
     showTab("customize");
   });
 })();
+
+
+/* ================================================================
+   IN-PAGE DESTINATION SEARCH BARS (above the package grids)
+   -------------------------------------------------------------------
+   Purely additive. The search bars placed above the packages on Home
+   ("Popular right now"), India Packages, International Packages and
+   the Search Results tab all reuse the EXISTING header search
+   (initSiteSearch above) — they just copy the typed destination into
+   the header search box and submit it, so results, cards, "no results"
+   message and "Get a Custom Quote" behave exactly the same everywhere.
+   Nothing above (packages, filters, header search, hero search) is
+   modified.
+================================================================ */
+(function initPackageSearchBars(){
+  const siteForm  = document.getElementById("siteSearchForm");
+  const siteInput = document.getElementById("siteSearchInput");
+  const forms     = document.querySelectorAll(".pkg-search-form");
+  const list      = document.getElementById("pkgSearchList");
+  if(!siteForm || !siteInput || !forms.length) return;
+
+  // Only the bar on the Search Results tab mirrors the current query, so the
+  // Home / India / International bars always open clean.
+  function syncInputs(value){
+    const i = document.querySelector("#tab-search .pkg-search-input");
+    if(i) i.value = value;
+  }
+
+  // Destination suggestions (package names + each place in the route),
+  // rebuilt on focus so they always reflect the latest backend packages.
+  function refreshSuggestions(){
+    if(!list) return;
+    const seen = new Set();
+    const out = [];
+    allPackages.forEach(p => {
+      [p.name].concat((p.loc || "").split(/[·,|\/]/)).forEach(t => {
+        const v = (t || "").trim();
+        const k = v.toLowerCase();
+        if(v && !seen.has(k)){ seen.add(k); out.push(v); }
+      });
+    });
+    list.innerHTML = out.map(v => `<option value="${v.replace(/"/g, "&quot;")}"></option>`).join("");
+  }
+
+  forms.forEach(f => {
+    const input = f.querySelector(".pkg-search-input");
+    if(!input) return;
+
+    input.addEventListener("focus", refreshSuggestions);
+
+    f.addEventListener("submit", (e)=>{
+      e.preventDefault();
+      const q = input.value.trim();
+      if(!q){ input.focus(); return; }
+      siteInput.value = q;
+      syncInputs(q);
+      if(typeof siteForm.requestSubmit === "function"){
+        siteForm.requestSubmit();
+      }else{
+        siteForm.dispatchEvent(new Event("submit", { cancelable:true, bubbles:true }));
+      }
+    });
+  });
+
+  // Keep the Search Results bar showing the searched text (also when the header search is used).
+  siteForm.addEventListener("submit", ()=> syncInputs(siteInput.value.trim()));
+})();
