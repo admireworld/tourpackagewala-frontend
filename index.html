@@ -781,7 +781,12 @@
           </div>
         </div>
 
-        <button type="button" class="cwiz-pdf-btn" id="cwizPdfBtn">&#8681; Download Quote PDF</button>
+        <div class="package-download-section customize-download-section" aria-labelledby="cwizDownloadHeading">
+          <h3 id="cwizDownloadHeading">Download Your Custom Package</h3>
+          <input type="tel" id="cwizDownloadWhatsapp" maxlength="10" inputmode="numeric" autocomplete="tel" placeholder="Enter Your WhatsApp Number" aria-label="WhatsApp Number">
+          <button type="button" class="cwiz-pdf-btn" id="cwizPdfBtn" disabled>&#8681; Download Now</button>
+          <p class="package-download-msg" id="cwizDownloadMsg" aria-live="polite"></p>
+        </div>
       </aside>
     </div>
 
@@ -1365,9 +1370,11 @@
 <div id="cwizPrintArea" class="cwiz-print-area"></div>
 
 <!-- ============ EMAILJS ============ -->
+
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
-<script src="script.js?v=7"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="script.js?v=9"></script>
 
 </body>
 </html>

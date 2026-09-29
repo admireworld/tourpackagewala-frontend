@@ -304,7 +304,47 @@ tr:hover td{background:var(--sand-soft);}
 
       <!-- BOOKINGS -->
       <div class="section" id="sec-bookings">
-        <div class="main-head"><h2>Bookings</h2><button class="btn small ghost" onclick="loadBookings()">Refresh</button></div>
+        <div class="main-head"><h2>Bookings</h2><div><button class="btn small" onclick="toggleOfflineBookingForm()">+ Add Offline Booking</button> <button class="btn small ghost" onclick="loadBookings()">Refresh</button></div></div>
+        <div class="card" id="offlineBookingCard" style="display:none;">
+          <h3>Add Offline Booking</h3>
+          <p class="muted" style="margin:0 0 12px;">The customer's account is created from their email (if new) and this booking appears in their My Bookings after they log in with email OTP.</p>
+          <div class="form-grid">
+            <div class="field"><label>Customer Name *</label><input id="obName"></div>
+            <div class="field"><label>Phone</label><input id="obPhone" type="tel" maxlength="10" placeholder="10 digits"></div>
+            <div class="field"><label>Email * (login id)</label><input id="obEmail" type="email"></div>
+            <div class="field span2"><label>Package *</label><select id="obPackage"><option value="">Loading packages…</option></select></div>
+            <div class="field"><label>Travel Date (optional)</label><input id="obTravelDate" type="date"></div>
+            <div class="field"><label>Destination (optional — package ka default use hoga)</label><input id="obDestination" placeholder="e.g. Jaipur, Udaipur"></div>
+            <div class="field"><label>No. of Pax</label><input id="obPax" type="number" min="1" value="1"></div>
+            <div class="field"><label>Trip Duration</label><input id="obDuration" placeholder="e.g. 5D/4N"></div>
+            <div class="field"><label>Total Payment (₹) *</label><input id="obTotal" type="number" min="0" oninput="obCalcBalance()"></div>
+            <div class="field"><label>Advance Payment (₹)</label><input id="obPaid" type="number" min="0" value="0" oninput="obCalcBalance()"></div>
+            <div class="field"><label>Balance Payment (auto)</label><input id="obBalance" readonly value="0"></div>
+            <div class="field"><label>Balance Payment Deadline</label><input id="obDueDate" type="date"></div>
+            <div class="field"><label>Booking Date</label><input id="obDate" type="date"></div>
+            <div class="field span2"><label>Remarks (internal, not shown to customer)</label><textarea id="obRemarks" rows="2"></textarea></div>
+          </div>
+          <div style="margin-top:12px;"><button class="btn" id="obSaveBtn" onclick="saveOfflineBooking()">Create booking</button></div>
+          <div class="ok-msg" id="obMsg"></div>
+        </div>
+        <div class="card" id="bookingEditCard" style="display:none;">
+          <h3>Edit Booking <span class="muted" id="beTitle"></span></h3>
+          <p class="muted" style="margin:0 0 12px;">Changes yahan save karte hi customer ke My Bookings mein update ho jate hain.</p>
+          <div class="form-grid">
+            <div class="field"><label>Destination</label><input id="beDestination"></div>
+            <div class="field"><label>Travel Date</label><input id="beTravelDate" type="date"></div>
+            <div class="field"><label>No. of Pax</label><input id="bePax" type="number" min="1"></div>
+            <div class="field"><label>Trip Duration</label><input id="beDuration" placeholder="e.g. 5D/4N"></div>
+            <div class="field"><label>Total Payment (₹)</label><input id="beTotal" type="number" min="0" oninput="beCalcBalance()"></div>
+            <div class="field"><label>Advance Payment (₹)</label><input id="beAdvance" type="number" min="0" oninput="beCalcBalance()"></div>
+            <div class="field"><label>Total Paid so far (₹)</label><input id="bePaid" type="number" min="0" oninput="beCalcBalance()"></div>
+            <div class="field"><label>Balance Payment (auto)</label><input id="beBalance" readonly value="0"></div>
+            <div class="field"><label>Balance Payment Deadline</label><input id="beDueDate" type="date"></div>
+          </div>
+          <div style="margin-top:12px;"><button class="btn" id="beSaveBtn" onclick="saveBookingEdit()">Save changes</button> <button class="btn ghost" onclick="closeBookingEdit()">Cancel</button></div>
+          <div class="ok-msg" id="beMsg"></div>
+        </div>
+        <input type="file" id="bkVoucherFile" accept="application/pdf,.pdf" style="display:none;">
         <div class="card"><div id="bookingsList" class="empty">Loading…</div></div>
       </div>
 
@@ -1124,18 +1164,217 @@ async function loadBookings(){
   try{
     const data = await apiGetAdmin("/api/bookings/admin/all");
     const rows = data.bookings || [];
+    window.bkRows = rows; // used by the Edit form
     if(!rows.length){ el.innerHTML = '<div class="empty">No bookings yet.</div>'; return; }
-    el.innerHTML = `<table><thead><tr><th>Date</th><th>Item</th><th>Traveller</th><th>Amount</th><th>Status</th><th></th></tr></thead><tbody>
-      ${rows.map(b=>`<tr>
+    el.innerHTML = `<table><thead><tr><th>Date</th><th>Item / Trip</th><th>Traveller</th><th>Payment</th><th>Status</th><th>Voucher</th><th></th></tr></thead><tbody>
+      ${rows.map(b=>{
+        const pay = b.payment;
+        const payPill = pay ? `<br><span class="pill ${pay.status==='PAID'?'green':pay.status==='PARTIAL'?'amber':'red'}">${esc(pay.status)}</span> <span class="muted">Adv ${money(pay.advance||0)} · Paid ${money(pay.paid)} · Bal ${money(pay.balance)}</span>${pay.balance>0?`<br><span class="muted">Balance due: ${b.balanceDueDate?esc(b.balanceDueDate):'not set'}</span>`:''}` : '';
+        const isCustom = b.voucherType === "CUSTOM";
+        return `<tr>
         <td>${fmtDate(b.createdAt)}</td>
-        <td>${esc(b.itemName)}${b.isFixed?' <span class="badge-src">fixed</span>':''}${b.isFixed&&b.travelDate?`<br><span class="muted">Departure: ${esc(b.travelDate)}</span>`:''}</td>
+        <td>${esc(b.itemName)}${b.isFixed?' <span class="badge-src">fixed</span>':''}${b.bookingSource==='OFFLINE'?' <span class="badge-src">offline</span>':''}${b.destination?`<br><span class="muted">Destination: ${esc(b.destination)}</span>`:''}${b.travelDate?`<br><span class="muted">Travel: ${esc(b.travelDate)}</span>`:''}<br><span class="muted">${b.travellers||1} pax${b.tripDuration?` · ${esc(b.tripDuration)}`:''}</span>${b.remarks?`<br><span class="muted">Note: ${esc(b.remarks)}</span>`:''}</td>
         <td>${esc(b.user.name)}<br><span class="muted">${esc(b.user.phone)} · ${esc(b.user.email)}</span></td>
-        <td>${money(b.amount)} <span class="muted">(x${b.travellers})</span></td>
+        <td>${money(b.amount)} <span class="muted">(x${b.travellers})</span>${payPill}</td>
         <td><span class="pill ${b.status==='confirmed'?'green':'amber'}">${esc(b.status)}</span>${b.referralReward?`<br><span class="muted">Referral: ${money(b.referralReward.rewardAmount)}</span>`:''}</td>
-        <td>${b.status!=='confirmed'?`<button class="btn small" data-confirm-bk="${b.id}">Confirm</button>`:''}</td>
-      </tr>`).join("")}</tbody></table>`;
+        <td><span class="badge-src">${isCustom?'Custom PDF':'Auto'}</span><br>
+          <button class="btn small ghost" data-bk-upload="${b.id}">Upload PDF</button>
+          <button class="btn small ghost" data-bk-preview="${b.id}">Preview</button>
+          ${isCustom?`<button class="btn small ghost" data-bk-revert="${b.id}">Use auto</button>`:''}</td>
+        <td><button class="btn small ghost" data-bk-edit="${b.id}">Edit</button> ${b.status!=='confirmed'?`<button class="btn small" data-confirm-bk="${b.id}">Confirm</button> `:''}${(!pay||pay.balance>0)?`<button class="btn small ghost" data-bk-pay="${b.id}">+ Payment</button>`:''}</td>
+      </tr>`;}).join("")}</tbody></table>`;
   }catch(err){ el.innerHTML = `<div class="empty">${esc(err.message)}</div>`; }
 }
+
+/* ---- Add Offline Booking ---- */
+let obPackagesLoaded = false;
+function toggleOfflineBookingForm(){
+  const card = document.getElementById("offlineBookingCard");
+  const open = card.style.display === "none";
+  card.style.display = open ? "block" : "none";
+  if(open){
+    if(!document.getElementById("obDate").value) document.getElementById("obDate").value = new Date().toISOString().slice(0,10);
+    if(!obPackagesLoaded) loadOfflinePackageOptions();
+  }
+}
+let obPackageIndex = {};
+async function loadOfflinePackageOptions(){
+  const sel = document.getElementById("obPackage");
+  try{
+    const [india, intl, fixed] = await Promise.allSettled([
+      apiGetPublic("/api/packages/india"), apiGetPublic("/api/packages/international"), apiGetPublic("/api/fixed"),
+    ]);
+    const groups = [
+      ["India Packages", india.status==="fulfilled" ? india.value.packages : [], "in"],
+      ["International Packages", intl.status==="fulfilled" ? intl.value.packages : [], "it"],
+      ["Fixed Departures", fixed.status==="fulfilled" ? fixed.value.departures : [], "fd"],
+    ];
+    obPackageIndex = {};
+    let html = '<option value="">Select package…</option>';
+    for(const [label, list, key] of groups){
+      if(!list || !list.length) continue;
+      html += `<optgroup label="${esc(label)}">` + list.map(p=>{
+        const k = `${key}::${p.id}`;
+        obPackageIndex[k] = { id: p.id, name: p.name, loc: p.loc || "", price: Number(p.discountPrice || p.price) || 0 };
+        return `<option value="${esc(k)}">${esc(p.name)}</option>`;
+      }).join("") + `</optgroup>`;
+    }
+    html += '<option value="custom::other">Other / custom package…</option>';
+    sel.innerHTML = html;
+    obPackagesLoaded = true;
+  }catch(err){ sel.innerHTML = '<option value="">Could not load packages</option><option value="custom::other">Other / custom package…</option>'; }
+}
+document.addEventListener("change", (e)=>{
+  if(e.target.id !== "obPackage") return;
+  const p = obPackageIndex[e.target.value];
+  if(p && !document.getElementById("obTotal").value){ document.getElementById("obTotal").value = p.price; obCalcBalance(); }
+});
+function obCalcBalance(){
+  const t = Number(document.getElementById("obTotal").value) || 0;
+  const pd = Number(document.getElementById("obPaid").value) || 0;
+  document.getElementById("obBalance").value = Math.max(0, t - pd);
+}
+async function saveOfflineBooking(){
+  const msg = document.getElementById("obMsg"), btn = document.getElementById("obSaveBtn");
+  msg.style.color = "var(--coral-deep)"; msg.textContent = "";
+  const sel = document.getElementById("obPackage").value;
+  let pkg = obPackageIndex[sel];
+  if(sel === "custom::other"){
+    const nm = prompt("Enter the package / trip name:");
+    if(!nm || !nm.trim()){ msg.textContent = "Please enter a package name."; return; }
+    pkg = { id: "custom", name: nm.trim(), loc: "" };
+  }
+  if(!pkg){ msg.textContent = "Please select a package."; return; }
+  const body = {
+    name: document.getElementById("obName").value.trim(),
+    phone: document.getElementById("obPhone").value.trim(),
+    email: document.getElementById("obEmail").value.trim(),
+    itemId: pkg.id, itemName: pkg.name, destination: document.getElementById("obDestination").value.trim() || pkg.loc,
+    travellers: Number(document.getElementById("obPax").value) || 1,
+    tripDuration: document.getElementById("obDuration").value.trim(),
+    balanceDueDate: document.getElementById("obDueDate").value,
+    totalAmount: Number(document.getElementById("obTotal").value),
+    paidAmount: Number(document.getElementById("obPaid").value) || 0,
+    bookingDate: document.getElementById("obDate").value,
+    travelDate: document.getElementById("obTravelDate").value,
+    remarks: document.getElementById("obRemarks").value.trim(),
+  };
+  btn.disabled = true;
+  try{
+    const r = await apiSendAdmin("/api/bookings/admin/offline", "POST", body);
+    msg.style.color = "var(--teal-deep)";
+    msg.textContent = `Booking created${r.accountCreated ? " · new customer account created" : ""}${r.emailSent ? " · confirmation email sent" : " · (email not sent — mail not configured)"}.`;
+    showToast("Offline booking added");
+    ["obName","obPhone","obEmail","obTotal","obRemarks","obTravelDate","obDestination","obDuration","obDueDate"].forEach(id=>document.getElementById(id).value="");
+    document.getElementById("obPax").value = 1;
+    document.getElementById("obPaid").value = 0; document.getElementById("obPackage").value = ""; obCalcBalance();
+    loadBookings();
+  }catch(err){ msg.textContent = err.message; }
+  finally{ btn.disabled = false; }
+}
+
+/* ---- Edit booking (trip + payment details) ---- */
+let beEditingId = null;
+function beCalcBalance(){
+  const t = Number(document.getElementById("beTotal").value) || 0;
+  const pd = Number(document.getElementById("bePaid").value) || 0;
+  document.getElementById("beBalance").value = Math.max(0, t - pd);
+}
+function openBookingEdit(id){
+  const b = (window.bkRows || []).find(x=>x.id === id);
+  if(!b) return;
+  beEditingId = id;
+  const pay = b.payment;
+  document.getElementById("beTitle").textContent = `— ${b.itemName} (${b.user.name})`;
+  document.getElementById("beDestination").value = b.destination || "";
+  document.getElementById("beTravelDate").value = b.travelDate ? String(b.travelDate).slice(0,10) : "";
+  document.getElementById("bePax").value = b.travellers || 1;
+  document.getElementById("beDuration").value = b.tripDuration || "";
+  document.getElementById("beTotal").value = pay ? pay.total : (b.amount || 0);
+  document.getElementById("beAdvance").value = pay ? (pay.advance || 0) : 0;
+  document.getElementById("bePaid").value = pay ? pay.paid : 0;
+  document.getElementById("beDueDate").value = b.balanceDueDate || "";
+  document.getElementById("beMsg").textContent = "";
+  beCalcBalance();
+  const card = document.getElementById("bookingEditCard");
+  card.style.display = "block";
+  card.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+function closeBookingEdit(){ document.getElementById("bookingEditCard").style.display = "none"; beEditingId = null; }
+async function saveBookingEdit(){
+  if(!beEditingId) return;
+  const msg = document.getElementById("beMsg"), btn = document.getElementById("beSaveBtn");
+  msg.style.color = "var(--coral-deep)"; msg.textContent = "";
+  const body = {
+    destination: document.getElementById("beDestination").value.trim(),
+    travelDate: document.getElementById("beTravelDate").value,
+    travellers: Number(document.getElementById("bePax").value),
+    tripDuration: document.getElementById("beDuration").value.trim(),
+    totalAmount: Number(document.getElementById("beTotal").value),
+    advanceAmount: Number(document.getElementById("beAdvance").value) || 0,
+    paidAmount: Number(document.getElementById("bePaid").value) || 0,
+    balanceDueDate: document.getElementById("beDueDate").value,
+  };
+  btn.disabled = true;
+  try{
+    await apiSendAdmin(`/api/bookings/admin/edit/${encodeURIComponent(beEditingId)}`, "PUT", body);
+    showToast("Booking updated");
+    closeBookingEdit();
+    loadBookings();
+  }catch(err){ msg.textContent = err.message; }
+  finally{ btn.disabled = false; }
+}
+
+/* ---- Voucher upload / preview / payments ---- */
+let bkUploadTarget = null;
+document.addEventListener("click", async (e)=>{
+  const up = e.target.closest("[data-bk-upload]");
+  if(up){ bkUploadTarget = up.dataset.bkUpload; const f = document.getElementById("bkVoucherFile"); f.value = ""; f.click(); return; }
+
+  const prev = e.target.closest("[data-bk-preview]");
+  if(prev){
+    try{
+      const res = await fetch(`${API_BASE_URL}/api/bookings/admin/voucher/${prev.dataset.bkPreview}`, { headers: { "x-admin-key": session.adminKey || "" } });
+      if(!res.ok) throw new Error((await res.json().catch(()=>({}))).error || "Could not load voucher.");
+      window.open(URL.createObjectURL(await res.blob()), "_blank");
+    }catch(err){ showToast(err.message); }
+    return;
+  }
+
+  const ed = e.target.closest("[data-bk-edit]");
+  if(ed){ openBookingEdit(ed.dataset.bkEdit); return; }
+
+  const rev = e.target.closest("[data-bk-revert]");
+  if(rev){
+    if(!confirm("Remove the uploaded PDF and go back to the auto-generated voucher?")) return;
+    try{ await apiSendAdmin(`/api/bookings/admin/voucher-upload/${rev.dataset.bkRevert}`, "DELETE", {}); showToast("Using auto voucher"); loadBookings(); }
+    catch(err){ showToast(err.message); }
+    return;
+  }
+
+  const pay = e.target.closest("[data-bk-pay]");
+  if(pay){
+    const amt = prompt("Payment received (₹):");
+    if(!amt) return;
+    const note = prompt("Note (optional):") || "";
+    try{ await apiSendAdmin("/api/bookings/admin/payment", "POST", { bookingId: pay.dataset.bkPay, amount: Number(amt), note }); showToast("Payment recorded"); loadBookings(); }
+    catch(err){ showToast(err.message); }
+  }
+});
+document.getElementById("bkVoucherFile").addEventListener("change", async (e)=>{
+  const file = e.target.files[0];
+  if(!file || !bkUploadTarget) return;
+  if(!/\.pdf$/i.test(file.name) || file.type !== "application/pdf"){ showToast("Only PDF files are allowed."); return; }
+  if(file.size > 5*1024*1024){ showToast("PDF is too large (max 5 MB)."); return; }
+  const fd = new FormData(); fd.append("voucher", file);
+  try{
+    const res = await fetch(`${API_BASE_URL}/api/bookings/admin/voucher-upload/${bkUploadTarget}`, { method: "POST", headers: { "x-admin-key": session.adminKey || "" }, body: fd });
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error(data.error || "Upload failed.");
+    showToast("Voucher PDF uploaded — customer will get this file");
+    loadBookings();
+  }catch(err){ showToast(err.message); }
+});
 document.addEventListener("click", async (e)=>{
   const btn = e.target.closest("[data-confirm-bk]");
   if(!btn) return;
@@ -1342,6 +1581,113 @@ async function addVenue(){
 }
 
 /* ---------- LEADS ---------- */
+// Lead Type + influencer source (added): Lead Type badge, Referred By, Referral
+// Code columns, a per-lead "Details" row, and Lead Type / Influencer filters.
+// The backend sends leadType / referredByInfluencer / influencerName on every lead.
+let leadsCache = [];
+const leadsFilter = { type: "ALL", influencer: "" };
+const LEAD_TYPE_LABEL = { INFLUENCER: "Influencer", CUSTOMER: "Customer", REFERRAL: "Referral" };
+const LEAD_TYPE_STYLE = {
+  INFLUENCER: "background:#efe4ff;color:#5b2aa8;",
+  CUSTOMER:   "background:#e3f1ff;color:#1a5fa8;",
+  REFERRAL:   "background:#e0f6e9;color:#17703f;",
+};
+function leadTypeBadge(t){
+  const type = LEAD_TYPE_LABEL[t] ? t : "CUSTOMER";
+  return `<span style="display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700;${LEAD_TYPE_STYLE[type]}">${LEAD_TYPE_LABEL[type]}</span>`;
+}
+function leadDetailHTML(l){
+  const type = LEAD_TYPE_LABEL[l.leadType] ? l.leadType : "CUSTOMER";
+  const who = l.influencerName || l.referrerName || l.referredByInfluencer || l.referrerEmail || "-";
+  let headline, category;
+  if(type === "REFERRAL"){
+    headline = `This lead is from Influencer: <strong>${esc(who)}</strong>${l.referralCode ? ` (Code: <strong>${esc(l.referralCode)}</strong>)` : ""}`;
+    category = "Customer Lead via Referral";
+  }else if(type === "INFLUENCER"){
+    headline = "This lead is from an Influencer / referral partner directly.";
+    category = "Influencer Lead";
+  }else{
+    headline = "This lead did not come through any influencer's referral.";
+    category = "Direct Customer Lead";
+  }
+  const utm = l.utm || {};
+  const utmTxt = [utm.source, utm.medium, utm.campaign].filter(Boolean).join(" / ");
+  return `<div style="padding:12px 14px;background:var(--surface,#fafafa);border:1px solid var(--line);border-radius:8px;white-space:normal;">
+    <div style="font-size:14px;margin-bottom:4px;">${headline}</div>
+    <div style="font-size:14px;margin-bottom:8px;">Lead Category: <strong>${esc(category)}</strong> ${leadTypeBadge(type)}</div>
+    <div class="muted" style="line-height:1.7;">
+      ${l.referredByInfluencer ? `Influencer ID: ${esc(l.referredByInfluencer)}<br>` : ""}
+      Lead source: ${esc((l.source||"").replace(/_/g," "))} &middot; Booking source: ${esc(l.bookingSource||"ONLINE")} &middot; Page: ${esc(l.page||"-")}<br>
+      Interest: ${esc(l.interest||"-")}${l.message ? ` &middot; Message: ${esc(l.message)}` : ""}<br>
+      ${l.referralCode ? `Initial package: ${esc(l.initialPackage||"-")} &middot; Final package: ${esc(l.finalPackage||"-")}<br>` : ""}
+      ${utmTxt ? `Campaign: ${esc(utmTxt)}<br>` : ""}
+      Created: ${fmtDate(l.createdAt)}
+    </div>
+  </div>`;
+}
+function renderLeadsTable(){
+  const listEl = document.getElementById("leadsList");
+  const inf = leadsFilter.influencer.toLowerCase();
+  const rows = leadsCache.filter(l=>{
+    if(leadsFilter.type !== "ALL" && l.leadType !== leadsFilter.type) return false;
+    if(inf){
+      const name = String(l.influencerName || l.referrerName || l.referredByInfluencer || l.referrerEmail || "").toLowerCase();
+      if(name !== inf) return false;
+    }
+    return true;
+  });
+  if(!rows.length){ listEl.innerHTML = '<div class="empty">No leads found for this filter.</div>'; return; }
+  listEl.innerHTML = `<table><thead><tr><th>Lead Name</th><th>Phone</th><th>Email</th><th>Lead Type</th><th>Referred By</th><th>Referral Code</th><th>Date</th><th>Interest</th><th>Source</th><th>Package Downloaded</th><th>Referral</th><th>Status</th><th></th></tr></thead><tbody>
+    ${rows.map(l=>`<tr>
+      <td>${esc(l.name)}</td>
+      <td>${esc(l.phone||'-')}</td>
+      <td>${esc(l.email||'-')}</td>
+      <td>${leadTypeBadge(l.leadType)}</td>
+      <td>${l.leadType === "REFERRAL" ? esc(l.influencerName || l.referrerName || l.referredByInfluencer || '-') : '<span class="muted">—</span>'}</td>
+      <td>${l.referralCode ? `<strong>${esc(l.referralCode)}</strong>` : '<span class="muted">—</span>'}</td>
+      <td>${fmtDate(l.createdAt)}</td>
+      <td>${esc(l.interest||'-')}${l.message?`<br><span class="muted">${esc(l.message)}</span>`:''}</td>
+      <td><span class="badge-src">${esc(l.source.replace(/_/g,' '))}</span></td>
+      <td>${l.source === "PACKAGE_DOWNLOAD" ? esc(l.packageName || l.finalPackage || l.interest || "-") : '<span class="muted">—</span>'}</td>
+      <td>${l.referralCode ? `
+        <div class="muted">Initial: ${esc(l.initialPackage || '-')}</div>
+        <div class="muted">Final: ${esc(l.finalPackage || '-')}</div>
+        <label style="display:flex;align-items:center;gap:4px;margin-top:4px;font-weight:normal;">
+          <input type="checkbox" data-lead-verify="${l.id}" ${l.referralVerified ? 'checked' : ''}> Verified
+        </label>
+      ` : '<span class="muted">—</span>'}</td>
+      <td><select data-lead-status="${l.id}">
+        ${["new","contacted","converted","closed"].map(s=>`<option value="${s}" ${s===l.status?"selected":""}>${s}</option>`).join("")}
+      </select></td>
+      <td><button class="btn small ghost" data-lead-detail="${l.id}">Details</button></td>
+    </tr>
+    <tr id="lead-detail-${l.id}" style="display:none;"><td colspan="12">${leadDetailHTML(l)}</td></tr>`).join("")}</tbody></table>`;
+}
+function renderLeadsFilterBar(){
+  let bar = document.getElementById("leadsFilterBar");
+  const listEl = document.getElementById("leadsList");
+  if(!bar){
+    bar = document.createElement("div");
+    bar.id = "leadsFilterBar";
+    bar.style.cssText = "display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:12px;";
+    listEl.parentNode.insertBefore(bar, listEl);
+  }
+  const names = [...new Set(leadsCache
+    .map(l => l.influencerName || l.referrerName || l.referredByInfluencer || l.referrerEmail || "")
+    .filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  bar.innerHTML = `
+    <label style="display:flex;align-items:center;gap:6px;font-weight:normal;">Lead Type
+      <select id="leadsTypeFilter">
+        ${[["ALL","All"],["INFLUENCER","Influencer"],["CUSTOMER","Customer"],["REFERRAL","Referral"]].map(([v,t])=>`<option value="${v}" ${v===leadsFilter.type?"selected":""}>${t}</option>`).join("")}
+      </select>
+    </label>
+    <label style="display:flex;align-items:center;gap:6px;font-weight:normal;">Influencer
+      <select id="leadsInfluencerFilter">
+        <option value="">All influencers</option>
+        ${names.map(n=>`<option value="${esc(n)}" ${n.toLowerCase()===leadsFilter.influencer.toLowerCase()?"selected":""}>${esc(n)}</option>`).join("")}
+      </select>
+    </label>`;
+}
 async function loadLeads(){
   const statsEl = document.getElementById("leadsStats");
   const listEl = document.getElementById("leadsList");
@@ -1351,30 +1697,26 @@ async function loadLeads(){
     const bySource = data.bySource || {}, byStatus = data.byStatus || {};
     statsEl.innerHTML = `<div class="stat-card"><div class="num">${data.total}</div><div class="lbl">Total leads</div></div>` +
       Object.entries(bySource).map(([k,v])=>`<div class="stat-card"><div class="num">${v}</div><div class="lbl">${esc(k.replace(/_/g," "))}</div></div>`).join("");
-    const rows = data.leads || [];
-    if(!rows.length){ listEl.innerHTML = '<div class="empty">No leads yet.</div>'; return; }
-    listEl.innerHTML = `<table><thead><tr><th>Date</th><th>Name</th><th>Contact</th><th>Interest</th><th>Source</th><th>Referral</th><th>Status</th></tr></thead><tbody>
-      ${rows.map(l=>`<tr>
-        <td>${fmtDate(l.createdAt)}</td>
-        <td>${esc(l.name)}</td>
-        <td>${esc(l.phone||'-')}${l.email?`<br><span class="muted">${esc(l.email)}</span>`:''}</td>
-        <td>${esc(l.interest||'-')}${l.message?`<br><span class="muted">${esc(l.message)}</span>`:''}</td>
-        <td><span class="badge-src">${esc(l.source.replace(/_/g,' '))}</span></td>
-        <td>${l.referralCode ? `
-          <div><strong>${esc(l.referralCode)}</strong></div>
-          <div class="muted">${esc(l.referrerName || l.referrerEmail || '-')}</div>
-          <div class="muted">Initial: ${esc(l.initialPackage || '-')}</div>
-          <div class="muted">Final: ${esc(l.finalPackage || '-')}</div>
-          <label style="display:flex;align-items:center;gap:4px;margin-top:4px;font-weight:normal;">
-            <input type="checkbox" data-lead-verify="${l.id}" ${l.referralVerified ? 'checked' : ''}> Verified
-          </label>
-        ` : '<span class="muted">—</span>'}</td>
-        <td><select data-lead-status="${l.id}">
-          ${["new","contacted","converted","closed"].map(s=>`<option value="${s}" ${s===l.status?"selected":""}>${s}</option>`).join("")}
-        </select></td>
-      </tr>`).join("")}</tbody></table>`;
+    leadsCache = data.leads || [];
+    if(!leadsCache.length){ listEl.innerHTML = '<div class="empty">No leads yet.</div>'; return; }
+    renderLeadsFilterBar();
+    renderLeadsTable();
   }catch(err){ listEl.innerHTML = `<div class="empty">${esc(err.message)}</div>`; }
 }
+document.addEventListener("click", (e)=>{
+  const btn = e.target.closest("[data-lead-detail]");
+  if(!btn) return;
+  const row = document.getElementById("lead-detail-" + btn.dataset.leadDetail);
+  if(row){
+    const open = row.style.display === "none";
+    row.style.display = open ? "table-row" : "none";
+    btn.textContent = open ? "Hide" : "Details";
+  }
+});
+document.addEventListener("change", (e)=>{
+  if(e.target.id === "leadsTypeFilter"){ leadsFilter.type = e.target.value; renderLeadsTable(); }
+  if(e.target.id === "leadsInfluencerFilter"){ leadsFilter.influencer = e.target.value; renderLeadsTable(); }
+});
 document.addEventListener("change", async (e)=>{
   const sel = e.target.closest("[data-lead-status]");
   if(sel){

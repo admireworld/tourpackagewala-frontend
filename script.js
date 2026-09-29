@@ -1425,8 +1425,66 @@ document.getElementById("cwizShareEmail").addEventListener("click", async ()=>{
 
 /* ---------- Download Quote PDF (via the browser's print / Save-as-PDF dialog,
    no extra library needed — see .cwiz-print-area / @media print in style.css) ---------- */
+/* Clicking "Download Quote PDF" now opens a small popup asking for the customer's
+   contact number. On submit the PDF is generated and the lead is saved to the backend. */
+function isValidWhatsappNumber(value){
+  return /^[0-9]{10}$/.test(String(value || "").trim());
+}
+
+function bindWhatsappDownloadValidation(input, button, msgEl){
+  if(!input || !button) return;
+  const sync = () => {
+    const digits = input.value.replace(/\D/g, "").slice(0, 10);
+    input.value = digits;
+    button.disabled = !isValidWhatsappNumber(digits);
+    if(msgEl) msgEl.textContent = digits && digits.length < 10 ? "Enter a valid 10-digit WhatsApp number." : "";
+  };
+  input.addEventListener("input", sync);
+  sync();
+}
+
+async function submitPackageDownloadLead({ whatsappNumber, packageId, packageName }){
+  const attribution = getReferralAttribution();
+  return apiPost("/api/leads/whatsapp-download-lead", {
+    whatsappNumber,
+    packageId,
+    packageName,
+    referralCode: attribution.code || "",
+    source: "PACKAGE_DOWNLOAD",
+  });
+}
+
 document.getElementById("cwizPdfBtn").addEventListener("click", async ()=>{
   if(!cwiz.hotelId){ showToast("Select a hotel first to generate your quote PDF."); return; }
+  const input = document.getElementById("cwizDownloadWhatsapp");
+  const msg = document.getElementById("cwizDownloadMsg");
+  const btn = document.getElementById("cwizPdfBtn");
+  const whatsappNumber = input.value.trim();
+  if(!isValidWhatsappNumber(whatsappNumber)){ msg.textContent = "Enter a valid 10-digit WhatsApp number."; return; }
+
+  btn.disabled = true;
+  btn.textContent = "Preparing PDF…";
+  msg.textContent = "";
+  try{
+    const packageName = `Customize Package — ${cwiz.nights}N ${cwiz.destination}`;
+    const packageId = `customize-${String(cwiz.destination || "trip").toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${cwiz.hotelId || "package"}`;
+    await submitPackageDownloadLead({ whatsappNumber, packageId, packageName });
+    await cwizDownloadQuotePdf("Package Customer", whatsappNumber, "");
+  }catch(err){
+    msg.textContent = err.message || "Could not save your request. Please try again.";
+  }finally{
+    btn.textContent = "⇩ Download Now";
+    btn.disabled = !isValidWhatsappNumber(input.value.trim());
+  }
+});
+
+bindWhatsappDownloadValidation(
+  document.getElementById("cwizDownloadWhatsapp"),
+  document.getElementById("cwizPdfBtn"),
+  document.getElementById("cwizDownloadMsg")
+);
+
+async function cwizDownloadQuotePdf(pdfName, pdfPhone, pdfEmail){
   await fetchCwizTotal(); // fresh total — nothing was kept live while selecting
   const hotel = customizeOptions.hotels.find(h => h.id === cwiz.hotelId);
   const sightseeingNames = customizeOptions.sightseeing.filter(s => cwiz.sightseeingIds.has(s.id)).map(s => s.name);
@@ -1434,8 +1492,50 @@ document.getElementById("cwizPdfBtn").addEventListener("click", async ()=>{
   const visaNames = customizeOptions.visas.filter(v => cwiz.visaIds.has(v.id)).map(v => v.name);
   const days = cwizItineraryDays();
 
+  // Direct PDF file download (jsPDF). If the library could not load for any
+  // reason, fall back to the browser's print / Save-as-PDF dialog so the
+  // customer still gets their quote.
+  try{
+    if(!(window.jspdf && window.jspdf.jsPDF)) throw new Error("jsPDF not loaded");
+    const clean = (v) => String(v == null ? "" : v).replace(/<[^>]*>/g, "").replace(/\u20B9/g, "Rs. ").replace(/[\u2013\u2014]/g, "-").replace(/[^\x00-\xFF]/g, "");
+    const doc = new window.jspdf.jsPDF({ unit: "pt", format: "a4" });
+    const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
+    const M = 44, maxW = W - M * 2;
+    let y = M;
+    const need = (h) => { if(y + h > H - M){ doc.addPage(); y = M; } };
+    const line = (txt, size, bold, gap) => {
+      doc.setFont("helvetica", bold ? "bold" : "normal");
+      doc.setFontSize(size);
+      doc.splitTextToSize(clean(txt), maxW).forEach(l => { need(size + 4); doc.text(l, M, y); y += size + 4; });
+      y += (gap || 0);
+    };
+    line("AdmireDworld Travel - Trip Quote", 18, true, 6);
+    line(`Prepared for: ${pdfName} | ${pdfPhone}`, 11, false, 8);
+    line(`${cwiz.nights}N ${cwiz.destination} Itinerary`, 14, true, 2);
+    line(`${cwiz.date ? `Departure: ${cwiz.date} | ` : ""}${cwiz.nights} nights | ${cwiz.rooms} Room(s), ${cwiz.guests} Guest(s)${cwiz.landOnly ? " | Land only" : ""}`, 11, false, 10);
+    line("Hotel", 12, true);
+    line(hotel ? `${hotel.name} (${hotel.category})` : "-", 11, false, 8);
+    line("Sightseeing", 12, true);
+    line(sightseeingNames.join(", ") || "None selected", 11, false, 8);
+    line("Transfers", 12, true);
+    line(transferNames.join(", ") || "None selected", 11, false, 8);
+    line("Visa", 12, true);
+    line(visaNames.join(", ") || "Not applicable / none selected", 11, false, 8);
+    line("Day-wise Itinerary", 12, true, 2);
+    days.forEach(d => line(`Day ${d.day} - ${d.title}: ${d.desc}`, 11, false, 3));
+    y += 8;
+    line("Total Net Price", 12, true);
+    line(money(cwiz.total), 16, true, 10);
+    line("Inclusive of all taxes & fees. AdmireDworld Travel | hello@admiredworld.travel | +91 96393 43585", 9, false, 0);
+    doc.save(`Quote-${String(cwiz.destination || "Trip").replace(/[^A-Za-z0-9]+/g, "-")}-${cwiz.nights}N.pdf`);
+    showToast("Quote PDF downloaded.");
+    return;
+  }catch(err){ console.error("direct PDF failed, using print fallback:", err); }
+
+  const pdfEsc = (v) => String(v).replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
   document.getElementById("cwizPrintArea").innerHTML = `
     <h1>AdmireDworld Travel — Trip Quote</h1>
+    <p>Prepared for: <strong>${pdfEsc(pdfName)}</strong> · ${pdfEsc(pdfPhone)}</p>
     <p><strong>${cwiz.nights}N ${cwiz.destination} Itinerary</strong></p>
     <p>${cwiz.date ? `Departure: ${cwiz.date} · ` : ""}${cwiz.nights} nights · ${cwiz.rooms} Room(s), ${cwiz.guests} Guest(s)${cwiz.landOnly ? " · Land only" : ""}</p>
     <h3>Hotel</h3>
@@ -1456,7 +1556,7 @@ document.getElementById("cwizPdfBtn").addEventListener("click", async ()=>{
   document.body.classList.add("cwiz-printing");
   window.print();
   setTimeout(()=> document.body.classList.remove("cwiz-printing"), 500);
-});
+}
 
 
 /* ---------- Admin: manage customize catalog (hotels/sightseeing/transfers/visas) ---------- */
@@ -2141,6 +2241,12 @@ function pkgDetailHTML(p){
       <div><h4>Inclusions</h4><ul>${(p.inclusions||[]).map(i=>`<li>${i}</li>`).join("") || "<li>—</li>"}</ul></div>
       <div><h4>Exclusions</h4><ul>${(p.exclusions||[]).map(i=>`<li>${i}</li>`).join("") || "<li>—</li>"}</ul></div>
     </div>
+    <div class="package-download-section" data-package-download="${p.id}">
+      <h3>Download Your Custom Package</h3>
+      <input type="tel" class="pkg-download-whatsapp" maxlength="10" inputmode="numeric" autocomplete="tel" placeholder="Enter Your WhatsApp Number" aria-label="WhatsApp Number">
+      <button type="button" class="btn-primary btn-block pkg-download-btn" disabled>Download Now</button>
+      <p class="package-download-msg" aria-live="polite"></p>
+    </div>
     <button class="btn-primary btn-block" style="margin-top:20px;" data-pkg-enquire="${p.id}">Book Now</button>
     ${whatsappBtnHTML(p.name, "pkg-whatsapp--block")}
     </div>
@@ -2263,6 +2369,76 @@ async function openPkgDetail(id, endpoint, fromUrl){
     history.pushState({ pkgDetail: true, path }, "", path);
     pkgDetailUrlPushed = true;
   }
+
+  const downloadSection = document.querySelector(`[data-package-download="${CSS.escape(String(full.id))}"]`);
+  if(downloadSection){
+    const input = downloadSection.querySelector(".pkg-download-whatsapp");
+    const btn = downloadSection.querySelector(".pkg-download-btn");
+    const msg = downloadSection.querySelector(".package-download-msg");
+    bindWhatsappDownloadValidation(input, btn, msg);
+    btn.addEventListener("click", async ()=>{
+      const whatsappNumber = input.value.trim();
+      if(!isValidWhatsappNumber(whatsappNumber)) return;
+      btn.disabled = true;
+      btn.textContent = "Preparing PDF…";
+      msg.textContent = "";
+      try{
+        await submitPackageDownloadLead({
+          whatsappNumber,
+          packageId: String(full.id),
+          packageName: full.name || "Travel Package",
+        });
+        await downloadPackagePdf(full, whatsappNumber);
+        msg.textContent = "PDF downloaded successfully.";
+      }catch(err){
+        msg.textContent = err.message || "Could not download the package PDF.";
+      }finally{
+        btn.textContent = "Download Now";
+        btn.disabled = !isValidWhatsappNumber(input.value.trim());
+      }
+    });
+  }
+}
+
+// Generates the package PDF only after the download lead has been saved.
+async function downloadPackagePdf(pkg, whatsappNumber){
+  if(!(window.jspdf && window.jspdf.jsPDF)) throw new Error("PDF service is unavailable. Please try again.");
+  const clean = (v) => String(v == null ? "" : v).replace(/<[^>]*>/g, "").replace(/\u20B9/g, "Rs. ").replace(/[\u2013\u2014]/g, "-").replace(/[^\x00-\xFF]/g, "");
+  const doc = new window.jspdf.jsPDF({ unit:"pt", format:"a4" });
+  const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
+  const M = 44, maxW = W - M * 2;
+  let y = M;
+  const need = h => { if(y + h > H - M){ doc.addPage(); y = M; } };
+  const line = (txt, size=11, bold=false, gap=3) => {
+    doc.setFont("helvetica", bold ? "bold" : "normal");
+    doc.setFontSize(size);
+    doc.splitTextToSize(clean(txt), maxW).forEach(l => { need(size+4); doc.text(l, M, y); y += size+4; });
+    y += gap;
+  };
+  line("AdmireDworld Travel - Package Details", 18, true, 8);
+  line(`Package: ${pkg.name || "-"}`, 14, true, 3);
+  line(`WhatsApp: ${whatsappNumber}`, 10, false, 8);
+  if(pkg.loc) line(`Destination: ${pkg.loc}`, 11, false, 3);
+  if(pkg.hotelCategory) line(`Hotel Category: ${pkg.hotelCategory}`, 11, false, 3);
+  if(pkg.hotelName) line(`Hotel: ${pkg.hotelName}`, 11, false, 8);
+  if(pkg.desc) line(pkg.desc, 11, false, 8);
+  if(pkg.dayWise && pkg.dayWise.length){
+    line("Day-wise Itinerary", 13, true, 3);
+    pkg.dayWise.forEach(d => line(`Day ${d.day} - ${d.title}: ${d.desc}`, 10.5, false, 3));
+  }
+  if(pkg.inclusions && pkg.inclusions.length){
+    line("Inclusions", 12, true, 2);
+    pkg.inclusions.forEach(i => line(`• ${i}`, 10.5, false, 2));
+  }
+  if(pkg.exclusions && pkg.exclusions.length){
+    line("Exclusions", 12, true, 2);
+    pkg.exclusions.forEach(i => line(`• ${i}`, 10.5, false, 2));
+  }
+  const price = pkg.discountPrice && pkg.discountPrice < pkg.price ? pkg.discountPrice : pkg.price;
+  if(price != null) line(`Package Price: ${money(price)} per person`, 13, true, 8);
+  line("AdmireDworld Travel | hello@admiredworld.travel | +91 96393 43585", 9, false, 0);
+  const filename = `Package-${String(pkg.name || "Travel").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g,"")}.pdf`;
+  doc.save(filename);
 }
 
 // Restores the default title/meta/canonical and, if WE were the ones who
@@ -3239,6 +3415,56 @@ async function applyPendingReferral(user){
   }
 }
 
+/* ---------- UNIVERSAL REFER & EARN (all package types) ----------
+   Referral rewards are paid only when a BOOKING record is confirmed by an
+   admin (see /api/bookings/admin/confirm -> creditReferralForBooking). Fixed
+   Departures and the card-level "Book now" already create that booking
+   record. But the "Book Now" button on a Website (India / International)
+   package's detail page only files an enquiry (lead) — it never created a
+   booking record, so a referrer earned nothing on those packages.
+   Fix (additive — original enquiry form/flow untouched): when a LOGGED-IN
+   customer successfully submits that enquiry, we also save a booking record
+   for the same package so the referral benefit works exactly like it does
+   on Fixed Departures. No package-type check anywhere. */
+const REFER_ENQ_BOOKED_KEY = "adw_ref_enq_booked"; // guards against double-crediting repeat enquiries
+function referEnquiryBookedBefore(email, pkgId){
+  try{
+    const list = JSON.parse(localStorage.getItem(REFER_ENQ_BOOKED_KEY) || "[]");
+    return list.includes(`${email}::${pkgId}`);
+  }catch{ return false; }
+}
+function referMarkEnquiryBooked(email, pkgId){
+  try{
+    const list = JSON.parse(localStorage.getItem(REFER_ENQ_BOOKED_KEY) || "[]");
+    list.push(`${email}::${pkgId}`);
+    localStorage.setItem(REFER_ENQ_BOOKED_KEY, JSON.stringify(list.slice(-200)));
+  }catch{ /* storage unavailable — fine, backend still de-dupes per booking id */ }
+}
+async function recordBookingForPackageEnquiry(leadBody){
+  try{
+    if(!leadBody || leadBody.source !== "package_enquiry") return;
+    if(typeof state === "undefined" || !state.user || !state.user.email) return; // referral needs an account
+    const pkg = currentPkgDetail && currentPkgDetail.pkg;
+    if(!pkg || pkg.name !== leadBody.finalPackage) return;
+    const email = String(state.user.email).trim().toLowerCase();
+    if(referEnquiryBookedBefore(email, pkg.id)) return;
+    const unitPrice = Number(pkg.discountPrice || pkg.price) || 0;
+    await apiPost("/api/bookings", {
+      itemId: pkg.id,
+      itemName: pkg.name,
+      destination: pkg.destination || pkg.loc || "",
+      isFixed: false,
+      amount: unitPrice, // per-person starting price × 1 traveller (enquiry form has no traveller count)
+      travellers: 1,
+      user: { name: state.user.name, phone: state.user.phone, email: state.user.email },
+    });
+    referMarkEnquiryBooked(email, pkg.id);
+    if(typeof loadMyBookings === "function") loadMyBookings();
+  }catch(err){
+    console.error("refer: could not record booking for package enquiry:", err);
+  }
+}
+
 const _origApiPost = apiPost;
 apiPost = async function(path, body){
   // Auto-tag any lead/enquiry with this browser's referral attribution
@@ -3257,6 +3483,9 @@ apiPost = async function(path, body){
     }
   }
   const data = await _origApiPost(path, outBody);
+  if(path === "/api/leads" && body && body.source === "package_enquiry"){
+    recordBookingForPackageEnquiry(body); // fire-and-forget; never blocks/breaks the enquiry
+  }
   if(path === "/api/verify-otp" && data && data.user){
     applyPendingReferral(data.user);
     loadReferUI();
@@ -3296,6 +3525,7 @@ openBooking = function(id, isFixed){
       travelDate,
       amount,
       travellers: val,
+      tripDuration: item.days || item.duration || "",
       user: { name: state.user.name, phone: state.user.phone, email: state.user.email },
     }).then(()=>{
       loadMyBookings(); // refresh "My Bookings" if it's already loaded
@@ -3357,6 +3587,67 @@ function myBookingRowHTML(b){
     </div>
   </div>`;
 }
+
+/* ---------- My Bookings upgrade: payment summary + custom voucher (additive) ----------
+   Wraps myBookingRowHTML() (original untouched) so every booking — ONLINE or
+   OFFLINE — keeps its existing card, and bookings that track payments (offline
+   bookings added by the admin) also get a Payment Summary card. Offline and
+   online bookings arrive in the same /api/bookings/mine list, so both show up
+   after a normal email-OTP login. */
+const _origMyBookingRowHTML = myBookingRowHTML;
+myBookingRowHTML = function(b){
+  let html = _origMyBookingRowHTML(b);
+
+  // Admin-uploaded custom voucher can be downloaded even before confirmation.
+  if(b.voucherType === "CUSTOM" && b.status !== "confirmed"){
+    html = html.replace(/<span class="voucher-pending-note">[^<]*<\/span>/,
+      `<button class="btn-voucher" data-download-voucher="${b.id}">Download voucher</button>`);
+  }
+
+  const src = b.bookingSource === "OFFLINE" ? "Offline booking" : "Online booking";
+  let extra = `<div class="mb-source-tag">${src}</div>`;
+
+  // Trip details: No. of Pax + Trip Duration (Destination / Travel Date are already in the card above).
+  extra += `
+    <div class="my-booking-grid mb-trip-grid">
+      <div><span>No. of Pax</span><strong>${b.travellers || 1}</strong></div>
+      <div><span>Trip Duration</span><strong>${b.tripDuration ? String(b.tripDuration).replace(/</g,"&lt;") : "To be confirmed"}</strong></div>
+    </div>`;
+
+  if(b.payment){
+    const p = b.payment;
+    const cls = p.status === "PAID" ? "paid" : p.status === "PARTIAL" ? "partial" : "pending";
+    let dueHTML = "";
+    if(p.balance > 0){
+      const dueTxt = b.balanceDueDate
+        ? new Date(b.balanceDueDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+        : "To be confirmed";
+      const overdue = b.balanceDueDate && new Date(b.balanceDueDate + "T23:59:59") < new Date();
+      dueHTML = `<div><span>Balance Payment Deadline</span><strong class="${overdue ? "pay-overdue" : ""}">${dueTxt}${overdue ? " (overdue)" : ""}</strong></div>`;
+    }
+    const waText = encodeURIComponent(`Hi, I'd like to pay the balance ${money(p.balance)} for booking ${b.id} (${b.itemName}).`);
+    const payBtn = p.balance > 0
+      ? `<a class="btn-pay-balance" href="https://wa.me/${WHATSAPP_NUMBER}?text=${waText}" target="_blank" rel="noopener">Pay Balance</a>`
+      : "";
+    extra += `
+      <div class="pay-summary-card">
+        <div class="pay-summary-head"><strong>Payment Summary</strong><span class="pay-status ${cls}">${p.status}</span></div>
+        <div class="pay-summary-grid">
+          <div><span>Total Payment</span><strong>${money(p.total)}</strong></div>
+          <div><span>Advance Payment</span><strong>${money(p.advance || 0)}</strong></div>
+          ${p.paid > (p.advance || 0) ? `<div><span>Total Paid</span><strong>${money(p.paid)}</strong></div>` : ""}
+          <div><span>Balance Payment</span><strong>${money(p.balance)}</strong></div>
+          ${dueHTML}
+        </div>
+        ${payBtn}
+      </div>`;
+  }
+
+  const idx = html.indexOf('<div class="my-booking-actions">');
+  if(idx === -1) return html;
+  const infoClose = html.lastIndexOf("</div>", idx);
+  return html.slice(0, infoClose) + extra + html.slice(infoClose);
+};
 
 async function loadMyBookings(){
   const loggedOutBox = document.getElementById("myBookingsLoggedOut");
