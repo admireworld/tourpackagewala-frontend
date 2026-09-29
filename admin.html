@@ -143,6 +143,7 @@ tr:hover td{background:var(--sand-soft);}
       <div class="nav-item" data-section="refer">Refer &amp; Earn</div>
       <div class="nav-item" data-section="wedding">Destination Wedding</div>
       <div class="nav-item" data-section="leads">Leads &amp; Conversions</div>
+      <div class="nav-item" data-section="offers">Festival Offers</div>
       <div class="nav-item" data-section="settings">Settings</div>
       <div class="sidebar-foot">
         <button class="btn ghost small full" id="logoutBtn" type="button" style="color:#fff;border-color:rgba(255,255,255,0.3);">Log out</button>
@@ -400,6 +401,26 @@ tr:hover td{background:var(--sand-soft);}
         <div class="card"><div id="leadsList" class="empty">Loading…</div></div>
       </div>
 
+      <!-- FESTIVAL OFFERS (popup on home page) -->
+      <div class="section" id="sec-offers">
+        <div class="main-head"><h2>Festival Offers</h2><button class="btn small ghost" onclick="loadOffers()">Refresh</button></div>
+        <div class="card">
+          <h3>Upload a new offer popup</h3>
+          <p class="muted" style="margin-top:-6px;">The offer that is switched ON is shown to every visitor on the home page, 3 seconds after it opens. Only one offer can be ON at a time — switching one ON turns the others OFF. Image: JPG / PNG / WEBP / GIF, max 3 MB.</p>
+          <div class="form-grid">
+            <div class="field"><label>Title (e.g. Navratri Special Offer)</label><input id="ofTitle" maxlength="80" placeholder="Navratri Special Offer"></div>
+            <div class="field"><label>Offer image</label><input id="ofImage" type="file" accept="image/jpeg,image/png,image/webp,image/gif"></div>
+            <div class="field span2">
+              <label><input type="checkbox" id="ofActive" checked style="width:auto;margin-right:6px;">Turn this offer ON right after uploading</label>
+            </div>
+            <div class="field span2"><img id="ofPreview" alt="" style="display:none;max-width:220px;max-height:220px;border-radius:10px;border:1px solid var(--line);"></div>
+          </div>
+          <div style="margin-top:12px;"><button class="btn" id="ofSubmitBtn" onclick="addOffer()">Upload offer</button></div>
+          <div class="ok-msg" id="ofMsg"></div>
+        </div>
+        <div class="card"><h3>All offers</h3><div id="ofList" class="empty">Loading…</div></div>
+      </div>
+
       <!-- SETTINGS -->
       <div class="section" id="sec-settings">
         <div class="main-head"><h2>Settings</h2><button class="btn small ghost" onclick="loadSettings()">Refresh</button></div>
@@ -636,7 +657,7 @@ document.querySelectorAll(".nav-item").forEach(item=>{
     const loaders = {
       overview: loadOverview, blog: loadBlog, pkgIndia: ()=>loadPackages("india"),
       pkgIntl: ()=>loadPackages("international"), fixed: loadFixed, customize: loadCustomize,
-      bookings: loadBookings, refer: loadRefer, wedding: loadWedding, leads: loadLeads, settings: loadSettings,
+      bookings: loadBookings, refer: loadRefer, wedding: loadWedding, leads: loadLeads, offers: loadOffers, settings: loadSettings,
     };
     (loaders[item.dataset.section] || (()=>{}))();
   });
@@ -1799,6 +1820,87 @@ async function saveAiSettings(){
     showToast("AI provider saved");
   }catch(err){ msg.style.color = "var(--coral-deep)"; msg.textContent = err.message; }
 }
+
+/* ---------- FESTIVAL OFFERS ---------- */
+document.getElementById("ofImage").addEventListener("change", (e)=>{
+  const f = e.target.files && e.target.files[0];
+  const prev = document.getElementById("ofPreview");
+  if(!f){ prev.style.display = "none"; return; }
+  prev.src = URL.createObjectURL(f);
+  prev.style.display = "block";
+});
+
+async function loadOffers(){
+  const el = document.getElementById("ofList");
+  el.innerHTML = '<div class="empty">Loading…</div>';
+  try{
+    const data = await apiGetAdmin("/api/offers/admin/all");
+    const offers = data.offers || [];
+    if(!offers.length){ el.innerHTML = '<div class="empty">No offers yet. Upload your first one above.</div>'; return; }
+    el.innerHTML = `<table><thead><tr><th>Image</th><th>Title</th><th>Status</th><th>Uploaded</th><th></th></tr></thead><tbody>${
+      offers.map(o=>`<tr>
+        <td><img src="${API_BASE_URL}${esc(o.imagePath)}" alt="" style="width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--line);"></td>
+        <td>${esc(o.title)}</td>
+        <td>${o.active ? '<span class="pill green">ON — showing to visitors</span>' : '<span class="pill amber">OFF</span>'}</td>
+        <td>${fmtDate(o.createdAt)}</td>
+        <td>
+          <button class="btn small ${o.active ? "ghost" : ""}" data-of-toggle="${esc(o.id)}" data-of-next="${o.active ? "off" : "on"}">${o.active ? "Turn OFF" : "Turn ON"}</button>
+          <button class="btn small coral" data-of-del="${esc(o.id)}">Delete</button>
+        </td>
+      </tr>`).join("")
+    }</tbody></table>`;
+  }catch(err){ el.innerHTML = `<div class="empty">${esc(err.message)}</div>`; }
+}
+
+async function addOffer(){
+  const msg = document.getElementById("ofMsg");
+  const btn = document.getElementById("ofSubmitBtn");
+  const title = document.getElementById("ofTitle").value.trim();
+  const file = document.getElementById("ofImage").files[0];
+  msg.style.color = "var(--coral-deep)"; msg.textContent = "";
+  if(!title){ msg.textContent = "Please enter a title."; return; }
+  if(!file){ msg.textContent = "Please choose an image."; return; }
+  if(file.size > 3*1024*1024){ msg.textContent = "Image is too large (max 3 MB)."; return; }
+  const fd = new FormData();
+  fd.append("title", title);
+  fd.append("active", document.getElementById("ofActive").checked ? "true" : "false");
+  fd.append("image", file);
+  btn.disabled = true; btn.textContent = "Uploading…";
+  try{
+    // multipart: do NOT set Content-Type (the browser adds the boundary); admin key goes in the header
+    const res = await fetch(`${API_BASE_URL}/api/offers/admin`, {
+      method: "POST",
+      headers: { "x-admin-key": session.adminKey || "" },
+      body: fd,
+    });
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error(data.error || "Upload failed.");
+    msg.style.color = "var(--teal-deep)"; msg.textContent = "Offer uploaded.";
+    showToast("Offer uploaded");
+    document.getElementById("ofTitle").value = "";
+    document.getElementById("ofImage").value = "";
+    document.getElementById("ofPreview").style.display = "none";
+    loadOffers();
+  }catch(err){ msg.style.color = "var(--coral-deep)"; msg.textContent = err.message; }
+  finally{ btn.disabled = false; btn.textContent = "Upload offer"; }
+}
+
+document.getElementById("ofList").addEventListener("click", async (e)=>{
+  const t = e.target.closest("[data-of-toggle]");
+  const d = e.target.closest("[data-of-del]");
+  try{
+    if(t){
+      await apiSendAdmin(`/api/offers/admin/${t.dataset.ofToggle}`, "PATCH", { active: t.dataset.ofNext === "on" });
+      showToast(t.dataset.ofNext === "on" ? "Offer is now ON" : "Offer turned OFF");
+      loadOffers();
+    } else if(d){
+      if(!confirm("Delete this offer permanently?")) return;
+      await apiSendAdmin(`/api/offers/admin/${d.dataset.ofDel}`, "DELETE");
+      showToast("Offer deleted");
+      loadOffers();
+    }
+  }catch(err){ showToast(err.message); }
+});
 
 /* ---------- boot ---------- */
 tryRestoreSession();

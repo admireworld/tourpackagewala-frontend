@@ -1707,3 +1707,7 @@ img, video{ max-width:100%; height:auto; }
 .package-download-section button{width:100%}
 .package-download-section button:disabled{opacity:.55;cursor:not-allowed}
 .package-download-msg{min-height:1.1em;margin:8px 0 0;font-size:.84rem;color:var(--coral-deep)}
+
+/* Customize wizard: PDF download box is shown only under the blue total bar (Review & Price tab) */
+.cwiz-summary > .customize-download-section{ display:none; }
+.cwiz-panel .customize-download-section{ margin-top:0; }

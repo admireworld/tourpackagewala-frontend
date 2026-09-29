@@ -1342,6 +1342,7 @@ function cwizReviewHTML(){
       <span>Total Net Price</span>
       <strong id="cwizTotal">${cwiz.hotelId ? "Calculating…" : "—"}</strong>
     </div>
+    <div id="cwizDownloadSlot" style="margin-top:14px;"></div>
     <p class="cwiz-summary-note" style="margin-top:10px;">Inclusive of all taxes &amp; fees — no hidden charges.</p>
   `;
 }
@@ -1349,7 +1350,13 @@ function cwizReviewHTML(){
 async function renderCwizReview(){
   const panel = document.getElementById("cwizPanelReview");
   if(!panel) return;
+  // The "Download Your PDF" box lives directly under the blue total bar. Detach
+  // the same node before the panel is re-rendered so its listeners survive.
+  const dlBox = document.querySelector(".customize-download-section");
+  if(dlBox) dlBox.remove();
   panel.innerHTML = cwizReviewHTML();
+  const dlSlot = document.getElementById("cwizDownloadSlot");
+  if(dlBox && dlSlot) dlSlot.appendChild(dlBox);
   if(!cwiz.hotelId) return; // nothing to price yet — hint above already says so
   const total = await fetchCwizTotal();
   const totalEl = document.getElementById("cwizTotal");
@@ -2228,6 +2235,12 @@ function pkgDetailHTML(p){
       </div>
     </div>
     <div class="pkg-detail-card">
+    <div class="package-download-section" style="margin-top:0;margin-bottom:20px;" data-package-download="${p.id}">
+      <h3>Download Your Custom Package</h3>
+      <input type="tel" class="pkg-download-whatsapp" maxlength="10" inputmode="numeric" autocomplete="tel" placeholder="Enter Your WhatsApp Number" aria-label="WhatsApp Number">
+      <button type="button" class="btn-primary btn-block pkg-download-btn" disabled>Download Now</button>
+      <p class="package-download-msg" aria-live="polite"></p>
+    </div>
     <p>${p.desc || ""}</p>
     <h3>Day-wise itinerary</h3>
     ${(p.dayWise && p.dayWise.length) ? `
@@ -2240,12 +2253,6 @@ function pkgDetailHTML(p){
     <div class="pkg-inc-exc">
       <div><h4>Inclusions</h4><ul>${(p.inclusions||[]).map(i=>`<li>${i}</li>`).join("") || "<li>—</li>"}</ul></div>
       <div><h4>Exclusions</h4><ul>${(p.exclusions||[]).map(i=>`<li>${i}</li>`).join("") || "<li>—</li>"}</ul></div>
-    </div>
-    <div class="package-download-section" data-package-download="${p.id}">
-      <h3>Download Your Custom Package</h3>
-      <input type="tel" class="pkg-download-whatsapp" maxlength="10" inputmode="numeric" autocomplete="tel" placeholder="Enter Your WhatsApp Number" aria-label="WhatsApp Number">
-      <button type="button" class="btn-primary btn-block pkg-download-btn" disabled>Download Now</button>
-      <p class="package-download-msg" aria-live="polite"></p>
     </div>
     <button class="btn-primary btn-block" style="margin-top:20px;" data-pkg-enquire="${p.id}">Book Now</button>
     ${whatsappBtnHTML(p.name, "pkg-whatsapp--block")}
