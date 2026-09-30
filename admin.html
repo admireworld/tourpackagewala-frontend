@@ -771,6 +771,7 @@ const PKG_FORM_FIELDS = [
   { id:"dayWise", label:"Day-wise itinerary — either \"Title | Description\" one line per day, OR paste a full AI-written itinerary as-is (## Day 1: ..., **bold**, --- breaks all handled automatically)", span:2, type:"textarea" },
   { id:"inclusions", label:"Inclusions (comma separated)", span:2, type:"textarea" },
   { id:"exclusions", label:"Exclusions (comma separated)", span:2, type:"textarea" },
+  { id:"imageUrl", label:"Package photo link (optional — paste a https:// photo link, OR choose a file below; leave both empty for an auto photo)", span:2 },
 ];
 function buildPkgForm(kind){
   const host = document.getElementById(`pkgForm-${kind}`);
@@ -780,7 +781,64 @@ function buildPkgForm(kind){
     <div class="field ${f.span===2?"span2":""}">
       <label>${f.label}</label>
       ${f.type==="textarea" ? `<textarea id="pkg-${kind}-${f.id}"></textarea>` : `<input id="pkg-${kind}-${f.id}" type="${f.type||"text"}">`}
-    </div>`).join("")}</div>`;
+    </div>`).join("")}
+    <div class="field span2">
+      <label>…or upload a photo from your phone/computer (saved permanently; if you choose a file it is used instead of the link)</label>
+      <input id="pkg-${kind}-imageFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif">
+      <img id="pkg-${kind}-imgPreview" alt="" style="display:none;max-width:220px;max-height:150px;object-fit:cover;border-radius:8px;margin-top:8px;">
+    </div></div>`;
+}
+
+/* ---------- Package photo: preview + shrink big phone photos + upload ---------- */
+function updatePkgPreview(kind){
+  const img = document.getElementById(`pkg-${kind}-imgPreview`);
+  if(!img) return;
+  const fileEl = document.getElementById(`pkg-${kind}-imageFile`);
+  const linkEl = document.getElementById(`pkg-${kind}-imageUrl`);
+  const file = fileEl && fileEl.files[0];
+  const src = file ? URL.createObjectURL(file) : ((linkEl && linkEl.value.trim()) || "");
+  if(src){ img.src = src; img.style.display = "block"; } else { img.removeAttribute("src"); img.style.display = "none"; }
+}
+document.addEventListener("change", (e)=>{
+  const m = /^pkg-(india|international)-imageFile$/.exec(e.target.id || "");
+  if(m) updatePkgPreview(m[1]);
+});
+document.addEventListener("input", (e)=>{
+  const m = /^pkg-(india|international)-imageUrl$/.exec(e.target.id || "");
+  if(m) updatePkgPreview(m[1]);
+});
+// Phone photos are often 4-10 MB: scale to max 1600px wide JPEG first (looks the same, loads fast, fits the limit).
+function compressPkgImage(file, maxW, quality){
+  return new Promise((resolve)=>{
+    if(!/^image\/(jpeg|png|webp)$/i.test(file.type)) return resolve(file); // GIFs are sent as-is
+    const url = URL.createObjectURL(file);
+    const im = new Image();
+    im.onload = ()=>{
+      URL.revokeObjectURL(url);
+      let w = im.naturalWidth, h = im.naturalHeight;
+      if(w > maxW){ h = Math.round(h * maxW / w); w = maxW; }
+      const c = document.createElement("canvas"); c.width = w; c.height = h;
+      const ctx = c.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0,0,w,h); ctx.drawImage(im,0,0,w,h);
+      c.toBlob((b)=> resolve(b && b.size < file.size ? new File([b], "photo.jpg", { type:"image/jpeg" }) : file), "image/jpeg", quality);
+    };
+    im.onerror = ()=>{ URL.revokeObjectURL(url); resolve(file); };
+    im.src = url;
+  });
+}
+async function uploadPkgImage(file){
+  const f = await compressPkgImage(file, 1600, 0.85);
+  if(f.size > 5*1024*1024) throw new Error("Image is too large (max 5 MB).");
+  const fd = new FormData();
+  fd.append("image", f);
+  // multipart: do NOT set Content-Type (the browser adds the boundary); admin key goes in the header
+  const res = await fetch(`${API_BASE_URL}/api/packages/image`, {
+    method: "POST",
+    headers: { "x-admin-key": session.adminKey || "" },
+    body: fd,
+  });
+  const data = await res.json().catch(()=>({}));
+  if(!res.ok) throw new Error(data.error || "Image upload failed.");
+  return data.imageUrl;
 }
 let pkgEditId = { india: null, international: null };
 function dayWiseToText(dayWise){
@@ -832,6 +890,9 @@ document.addEventListener("click", async (e)=>{
     set("hotelName", p.hotelName); set("price", p.price); set("discountPrice", p.discountPrice);
     set("desc", p.desc); set("dayWise", dayWiseToText(p.dayWise));
     set("inclusions", (p.inclusions||[]).join(", ")); set("exclusions", (p.exclusions||[]).join(", "));
+    set("imageUrl", p.imageUrl);
+    const fileEl = document.getElementById(`pkg-${kind}-imageFile`); if(fileEl) fileEl.value = "";
+    updatePkgPreview(kind);
     pkgEditId[kind] = id;
     document.getElementById(`pkgSubmitBtn-${kind}`).textContent = "Save changes";
     document.getElementById(`pkgCancelBtn-${kind}`).style.display = "inline-block";
@@ -843,6 +904,8 @@ function cancelPkgEdit(kind){
   document.getElementById(`pkgSubmitBtn-${kind}`).textContent = "Add package";
   document.getElementById(`pkgCancelBtn-${kind}`).style.display = "none";
   PKG_FORM_FIELDS.forEach(f=>{ const el = document.getElementById(`pkg-${kind}-${f.id}`); if(el) el.value=""; });
+  const fileEl = document.getElementById(`pkg-${kind}-imageFile`); if(fileEl) fileEl.value = "";
+  updatePkgPreview(kind);
 }
 async function addPackage(kind){
   const msg = document.getElementById(`pkgMsg-${kind}`);
@@ -855,10 +918,16 @@ async function addPackage(kind){
     price: get("price"), discountPrice: get("discountPrice") || undefined,
     desc: get("desc").trim(), dayWise: parseDayWise(get("dayWise")),
     inclusions: parseList(get("inclusions")), exclusions: parseList(get("exclusions")),
+    imageUrl: get("imageUrl").trim(),
   };
   if(!body.name || !body.loc){ msg.style.color="var(--coral-deep)"; msg.textContent = "Name and route are required."; return; }
   const editingId = pkgEditId[kind];
+  const photoFile = (document.getElementById(`pkg-${kind}-imageFile`) || {}).files?.[0];
   try{
+    if(photoFile){
+      msg.style.color = "var(--teal-deep)"; msg.textContent = "Uploading photo…";
+      body.imageUrl = await uploadPkgImage(photoFile);
+    }
     if(editingId){
       await apiSendAdmin(`/api/packages/${kind}/${editingId}`, "PUT", body);
       msg.style.color = "var(--teal-deep)"; msg.textContent = "Package updated.";
