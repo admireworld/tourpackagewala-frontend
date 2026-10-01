@@ -5015,3 +5015,16 @@ async function loadFixedAvailability(fixedId){
   // Keep the Search Results bar showing the searched text (also when the header search is used).
   siteForm.addEventListener("submit", ()=> syncInputs(siteInput.value.trim()));
 })();
+
+/* ================================================================
+   REFRESH FIX — keep the currently opened package detail page on refresh.
+   If the browser is already on /package/india/... or /package/international/...
+   do not fall back to the Home tab; restore that exact package directly.
+   No package data, styling, or other navigation logic is changed.
+================================================================ */
+(function restorePackageOnRefresh(){
+  const parsed = parsePkgDetailPath(location.pathname);
+  if(parsed && !currentPkgDetail){
+    openPkgDetail(parsed.id, parsed.endpoint, true);
+  }
+})();
