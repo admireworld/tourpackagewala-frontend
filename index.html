@@ -48,7 +48,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./style.css?v=20261001">
+<link rel="stylesheet" href="./style.css?v=20261004">
 <style id="site-css-fallback">
 /* Inline fallback: keeps the site styled even if the external stylesheet is delayed by cache/CDN. */
 /* ===========================================================
@@ -2227,6 +2227,16 @@ img, video{ max-width:100%; height:auto; }
       <input type="text" class="pkg-search-input" list="pkgSearchList" placeholder="Search destination e.g. Kashmir, Goa, Bali" autocomplete="off" aria-label="Search destination">
       <button type="submit" class="pkg-search-btn">Search</button>
     </form>
+    <!-- Sub-tabs: filter only, no package is removed -->
+    <div class="sub-tabs" id="indiaSubTabs" role="tablist" aria-label="Destinations">
+      <button type="button" class="subtab active" data-sub="all">All</button>
+      <button type="button" class="subtab" data-sub="kerala">Kerala</button>
+      <button type="button" class="subtab" data-sub="kashmir">Kashmir</button>
+      <button type="button" class="subtab" data-sub="himachal">Himachal</button>
+      <button type="button" class="subtab" data-sub="goa">Goa</button>
+      <button type="button" class="subtab" data-sub="rajasthan">Rajasthan</button>
+      <button type="button" class="subtab" data-sub="andaman">Andaman</button>
+    </div>
     <div class="filter-row">
       <button class="chip active" data-filter="all">All</button>
       <button class="chip" data-filter="hills">Hills</button>
@@ -2283,6 +2293,15 @@ img, video{ max-width:100%; height:auto; }
       <input type="text" class="pkg-search-input" list="pkgSearchList" placeholder="Search destination e.g. Kashmir, Goa, Bali" autocomplete="off" aria-label="Search destination">
       <button type="submit" class="pkg-search-btn">Search</button>
     </form>
+    <!-- Sub-tabs: filter only, no package is removed -->
+    <div class="sub-tabs" id="intlSubTabs" role="tablist" aria-label="Destinations">
+      <button type="button" class="subtab active" data-sub="all">All</button>
+      <button type="button" class="subtab" data-sub="dubai">Dubai</button>
+      <button type="button" class="subtab" data-sub="bali">Bali</button>
+      <button type="button" class="subtab" data-sub="thailand">Thailand</button>
+      <button type="button" class="subtab" data-sub="singapore">Singapore</button>
+      <button type="button" class="subtab" data-sub="maldives">Maldives</button>
+    </div>
     <div class="filter-row">
       <button class="chip active" data-filter="all">All</button>
       <button class="chip" data-filter="beach">Beach</button>
@@ -3090,7 +3109,7 @@ img, video{ max-width:100%; height:auto; }
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="/script.js?v=20261001"></script>
+<script src="/script.js?v=20261004"></script>
 <script src="/offer-popup.js?v=20261001"></script>
 
 </body>

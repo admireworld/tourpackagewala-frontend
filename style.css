@@ -1711,3 +1711,13 @@ img, video{ max-width:100%; height:auto; }
 /* Customize wizard: PDF download box is shown only under the blue total bar (Review & Price tab) */
 .cwiz-summary > .customize-download-section{ display:none; }
 .cwiz-panel .customize-download-section{ margin-top:0; }
+
+
+/* ============ Destination sub-tabs (India / International) — additive ============ */
+.sub-tabs{ display:flex; gap:8px; flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; margin:0 0 16px; padding:4px 0 10px; border-bottom:1px solid var(--line); }
+.sub-tabs::-webkit-scrollbar{ display:none; }
+.subtab{ flex:0 0 auto; padding:9px 18px; border-radius:999px; border:1.5px solid var(--line); background:#fff; color:var(--ink-soft); font-weight:700; font-size:0.9rem; cursor:pointer; transition:all .2s; white-space:nowrap; }
+.subtab:hover{ border-color:var(--navy); color:var(--navy); }
+.subtab.active{ background:var(--navy); color:var(--cloud); border-color:var(--navy); }
+.pkg-card.sub-hidden{ display:none !important; }
+.sub-empty{ grid-column:1/-1; padding:28px 12px; text-align:center; color:var(--ink-soft); font-weight:600; }

@@ -5028,3 +5028,108 @@ async function loadFixedAvailability(fixedId){
     openPkgDetail(parsed.id, parsed.endpoint, true);
   }
 })();
+
+
+/* ================================================================
+   DESTINATION SUB-TABS (India + International) — ADDITIVE ONLY.
+   Filters the already-rendered package cards by destination keyword
+   (matched on package name / route / destination / description).
+   Nothing is deleted or re-fetched; existing chips, search, backend
+   loaders and admin boxes are untouched. A MutationObserver re-applies
+   the active sub-tab whenever the existing code re-renders a grid.
+================================================================ */
+(function initDestinationSubTabs(){
+  const KEYWORDS = {
+    india: {
+      kerala:    ["kerala","alleppey","alappuzha","munnar","kumarakom","kochi","cochin","thekkady","wayanad","varkala","kovalam","backwater","thiruvananthapuram","trivandrum"],
+      kashmir:   ["kashmir","srinagar","gulmarg","pahalgam","sonamarg","sonmarg","dal lake"],
+      himachal:  ["himachal","manali","shimla","kasol","dharamshala","mcleod","dalhousie","spiti","kullu","kufri","khajjiar","kinnaur","chail"],
+      goa:       ["goa"],
+      rajasthan: ["rajasthan","jaipur","udaipur","jodhpur","jaisalmer","pushkar","bikaner","ranthambore","mount abu","chittorgarh","ajmer"],
+      andaman:   ["andaman","port blair","havelock","neil island","swaraj dweep","nicobar"]
+    },
+    international: {
+      dubai:     ["dubai","abu dhabi","sharjah","uae"],
+      bali:      ["bali","ubud","seminyak","nusa penida","kuta","canggu"],
+      thailand:  ["thailand","bangkok","phuket","krabi","pattaya","chiang mai","koh samui"],
+      singapore: ["singapore","sentosa","marina bay"],
+      maldives:  ["maldives","male atoll","maldive"]
+    }
+  };
+  const CFG = {
+    india:         { rowId:"indiaSubTabs", gridId:"indiaGrid", list:()=>indiaPackages },
+    international: { rowId:"intlSubTabs",  gridId:"intlGrid",  list:()=>intlPackages }
+  };
+  const state = { india:"all", international:"all" };
+
+  function haystack(p){
+    const full = (typeof pkgDetailStore !== "undefined" && pkgDetailStore[p.id]) || {};
+    return [p.name, p.loc, p.desc, full.destination, full.name, full.loc]
+      .filter(Boolean).join(" ").replace(/&amp;/g," & ").toLowerCase();
+  }
+  function matches(p, kind, sub){
+    if(sub === "all") return true;
+    const words = (KEYWORDS[kind] || {})[sub] || [];
+    const hay = haystack(p);
+    return words.some(w => hay.includes(w));
+  }
+  function apply(kind){
+    const c = CFG[kind];
+    const grid = document.getElementById(c.gridId);
+    if(!grid) return;
+    const sub = state[kind];
+    const byId = {};
+    c.list().forEach(p => byId[p.id] = p);
+    let shown = 0;
+    grid.querySelectorAll(".pkg-card").forEach(card => {
+      const id = card.querySelector("[data-view-pkg]")?.dataset.viewPkg;
+      const p = byId[id];
+      const ok = !p || matches(p, kind, sub);
+      card.classList.toggle("sub-hidden", !ok);
+      if(ok) shown++;
+    });
+    let empty = grid.querySelector(".sub-empty");
+    if(sub !== "all" && shown === 0){
+      if(!empty){
+        empty = document.createElement("p");
+        empty.className = "sub-empty";
+        grid.appendChild(empty);
+      }
+      empty.textContent = "No packages for " + sub.charAt(0).toUpperCase() + sub.slice(1) + " yet — check back soon or tap All.";
+    }else if(empty){
+      empty.remove();
+    }
+  }
+  function setActive(kind, sub){
+    state[kind] = sub;
+    document.querySelectorAll("#" + CFG[kind].rowId + " .subtab")
+      .forEach(b => b.classList.toggle("active", b.dataset.sub === sub));
+    apply(kind);
+  }
+
+  Object.keys(CFG).forEach(kind => {
+    const c = CFG[kind];
+    const rowEl = document.getElementById(c.rowId);
+    const grid = document.getElementById(c.gridId);
+    if(!rowEl || !grid) return;
+    rowEl.addEventListener("click", e => {
+      const b = e.target.closest(".subtab");
+      if(b) setActive(kind, b.dataset.sub);
+    });
+    // Re-apply after any re-render of the grid (backend load, chip click, nav reset).
+    let busy = false;
+    new MutationObserver(() => {
+      if(busy) return; busy = true;
+      apply(kind);
+      busy = false;
+    }).observe(grid, { childList:true });
+  });
+
+  // Coming in through the main nav / dropdown / quick-nav starts fresh on "All".
+  document.addEventListener("click", e => {
+    const el = e.target.closest("[data-tab]");
+    if(!el) return;
+    const t = el.dataset.tab;
+    if(CFG[t]) setActive(t, "all");
+  }, true);
+})();
