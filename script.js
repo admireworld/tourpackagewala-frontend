@@ -5073,10 +5073,66 @@ async function loadFixedAvailability(fixedId){
     const hay = haystack(p);
     return words.some(w => hay.includes(w));
   }
+  /* ---- Auto tabs: any package whose destination has no tab yet gets one ----
+     (e.g. Nainital). Static tabs above stay exactly as they are. */
+  const ALIASES = {
+    nainital: ["nainital","naini","jim corbett","corbett","ramnagar","bhimtal","sattal","mukteshwar","ranikhet","almora","kausani","kainchi"]
+  };
+  const dynLabels = { india:{}, international:{} };
+  function deriveLabel(p){
+    const full = (typeof pkgDetailStore !== "undefined" && pkgDetailStore[p.id]) || {};
+    const src = full.destination || p.destination || p.loc || p.name || "";
+    let first = String(src).replace(/&amp;/g," & ").split(/[,·&→>\/()—–|]|\band\b/i)[0]
+      .replace(/tour packages?.*$/i,"").replace(/\s+/g," ").trim();
+    if(first.length < 2) return "";
+    return first.replace(/\b\w/g, ch => ch.toUpperCase());
+  }
+  function syncDynamicTabs(kind){
+    const c = CFG[kind];
+    const rowEl = document.getElementById(c.rowId);
+    if(!rowEl) return;
+    const staticSubs = new Set([...rowEl.querySelectorAll(".subtab:not(.dyn-sub)")].map(b => b.dataset.sub));
+    const wanted = {};
+    c.list().forEach(p => {
+      // already covered by a static tab? then no new tab needed
+      for(const sub of staticSubs){
+        if(sub !== "all" && matches(p, kind, sub)) return;
+      }
+      const label = deriveLabel(p);
+      if(!label) return;
+      const key = label.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+      if(!key || staticSubs.has(key)) return;
+      wanted[key] = label;
+    });
+    // add / keep tabs
+    Object.keys(wanted).forEach(key => {
+      dynLabels[kind][key] = wanted[key];
+      KEYWORDS[kind][key] = ALIASES[key] || [wanted[key].toLowerCase()];
+      if(!rowEl.querySelector('.subtab[data-sub="' + key + '"]')){
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "subtab dyn-sub" + (state[kind] === key ? " active" : "");
+        b.dataset.sub = key;
+        b.textContent = wanted[key];
+        rowEl.appendChild(b);
+      }
+    });
+    // remove auto tabs that no longer have any package
+    rowEl.querySelectorAll(".dyn-sub").forEach(b => {
+      if(!wanted[b.dataset.sub]){
+        if(state[kind] === b.dataset.sub){
+          state[kind] = "all";
+          rowEl.querySelectorAll(".subtab").forEach(x => x.classList.toggle("active", x.dataset.sub === "all"));
+        }
+        b.remove();
+      }
+    });
+  }
   function apply(kind){
     const c = CFG[kind];
     const grid = document.getElementById(c.gridId);
     if(!grid) return;
+    syncDynamicTabs(kind);
     const sub = state[kind];
     const byId = {};
     c.list().forEach(p => byId[p.id] = p);
@@ -5095,7 +5151,7 @@ async function loadFixedAvailability(fixedId){
         empty.className = "sub-empty";
         grid.appendChild(empty);
       }
-      empty.textContent = "No packages for " + sub.charAt(0).toUpperCase() + sub.slice(1) + " yet — check back soon or tap All.";
+      empty.textContent = "No packages for " + (dynLabels[kind][sub] || (sub.charAt(0).toUpperCase() + sub.slice(1))) + " yet — check back soon or tap All.";
     }else if(empty){
       empty.remove();
     }
