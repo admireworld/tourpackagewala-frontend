@@ -24,6 +24,7 @@ below rather than assuming.
 - Customize Package — a fully personalized itinerary built to the traveller's destination, duration, budget and style, delivered within 24 hours: https://www.tourpackagewala.in/#customize
 - Destination Wedding planning — venue selection, decor, guest travel and on-ground coordination, in India and abroad: https://www.tourpackagewala.in/#wedding
 - Refer & Earn — existing customers share a referral link; new signups get an instant welcome bonus, and the referrer earns a percentage of the referred person's confirmed booking: https://www.tourpackagewala.in/#refer
+- Taxi Service — outstation taxi fare calculator (Sedan, Ertiga, Innova, Tempo Traveller) with route-wise fares: https://www.tourpackagewala.in/taxi-fare-calculator
 
 ## How booking works
 A visitor logs in with their name, phone number and email (verified with a

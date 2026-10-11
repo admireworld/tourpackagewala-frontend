@@ -6,6 +6,11 @@
     <priority>1.0</priority>
   </url>
   <url>
+    <loc>https://www.tourpackagewala.in/taxi-fare-calculator</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://www.tourpackagewala.in/policies.html</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
@@ -24,4 +29,6 @@
   <url><loc>https://www.tourpackagewala.in/package/international/maldives-overwater--it4</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://www.tourpackagewala.in/package/international/thailand-highlights--it5</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://www.tourpackagewala.in/package/international/singapore-explorer--it6</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+
+  <url><loc>https://www.tourpackagewala.in/taxi-fare/haldwani-to-nainital</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
 </urlset>

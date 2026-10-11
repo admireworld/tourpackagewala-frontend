@@ -144,6 +144,7 @@ tr:hover td{background:var(--sand-soft);}
       <div class="nav-item" data-section="wedding">Destination Wedding</div>
       <div class="nav-item" data-section="leads">Leads &amp; Conversions</div>
       <div class="nav-item" data-section="offers">Festival Offers</div>
+      <div class="nav-item" data-section="taxi">Taxi Fares</div>
       <div class="nav-item" data-section="settings">Settings</div>
       <div class="sidebar-foot">
         <button class="btn ghost small full" id="logoutBtn" type="button" style="color:#fff;border-color:rgba(255,255,255,0.3);">Log out</button>
@@ -421,6 +422,41 @@ tr:hover td{background:var(--sand-soft);}
         <div class="card"><h3>All offers</h3><div id="ofList" class="empty">Loading…</div></div>
       </div>
 
+      <!-- TAXI FARES (public "Taxi Service — Fare Calculator" page) -->
+      <div class="section" id="sec-taxi">
+        <div class="main-head"><h2>Taxi Fares</h2><button class="btn small ghost" onclick="loadTaxi()">Refresh</button></div>
+        <div class="card">
+          <h3 id="txFormTitle">Add a taxi route</h3>
+          <p class="muted" style="margin-top:-6px;">Every city and price on the website's <b>Taxi Service — Fare Calculator</b> page comes from here. Changes show on the site within about 30 seconds. Leave a price empty (or 0) to show "On request". With "both ways" ON, the same fare also works for To → From.</p>
+          <div class="form-grid">
+            <div class="field"><label>From city</label><input id="txFrom" maxlength="60" placeholder="Haldwani"></div>
+            <div class="field"><label>To city</label><input id="txTo" maxlength="60" placeholder="Nainital"></div>
+            <div class="field"><label>Distance (KM)</label><input id="txKm" inputmode="decimal" placeholder="35"></div>
+            <div class="field"><label>Sedan price (₹)</label><input id="txSedan" inputmode="numeric" placeholder="1500"></div>
+            <div class="field"><label>Ertiga price (₹)</label><input id="txErtiga" inputmode="numeric" placeholder="2000"></div>
+            <div class="field"><label>Innova price (₹)</label><input id="txInnova" inputmode="numeric" placeholder="2500"></div>
+            <div class="field"><label>Tempo Traveller price (₹)</label><input id="txTempo" inputmode="numeric" placeholder="4000"></div>
+            <div class="field">
+              <label><input type="checkbox" id="txBoth" checked style="width:auto;margin-right:6px;">Same fare both ways (To → From too)</label>
+              <label><input type="checkbox" id="txActive" checked style="width:auto;margin-right:6px;">Show on website</label>
+            </div>
+          </div>
+          <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn" id="txSaveBtn" onclick="saveTaxiRoute()">Add route</button>
+            <button class="btn ghost" id="txCancelBtn" style="display:none;" onclick="resetTaxiForm()">Cancel edit</button>
+          </div>
+          <div class="ok-msg" id="txMsg"></div>
+        </div>
+        <div class="card">
+          <h3>Bulk add / update (paste many routes at once)</h3>
+          <p class="muted" style="margin-top:-6px;">One route per line: <code>From, To, KM, Sedan, Ertiga, Innova, Tempo Traveller</code>. A From + To pair that already exists is updated, new ones are added. You can paste straight from Excel / Google Sheets too.</p>
+          <div class="field"><textarea id="txBulk" rows="5" placeholder="Haldwani, Bhimtal, 22, 1200, 1700, 2200, 3500&#10;Haldwani, Ranikhet, 80, 2500, 3200, 4000, 6500"></textarea></div>
+          <button class="btn" id="txBulkBtn" onclick="bulkTaxi()">Import routes</button>
+          <div class="ok-msg" id="txBulkMsg"></div>
+        </div>
+        <div class="card"><h3>All routes</h3><div id="txList" class="empty">Loading…</div></div>
+      </div>
+
       <!-- SETTINGS -->
       <div class="section" id="sec-settings">
         <div class="main-head"><h2>Settings</h2><button class="btn small ghost" onclick="loadSettings()">Refresh</button></div>
@@ -657,7 +693,7 @@ document.querySelectorAll(".nav-item").forEach(item=>{
     const loaders = {
       overview: loadOverview, blog: loadBlog, pkgIndia: ()=>loadPackages("india"),
       pkgIntl: ()=>loadPackages("international"), fixed: loadFixed, customize: loadCustomize,
-      bookings: loadBookings, refer: loadRefer, wedding: loadWedding, leads: loadLeads, offers: loadOffers, settings: loadSettings,
+      bookings: loadBookings, refer: loadRefer, wedding: loadWedding, leads: loadLeads, offers: loadOffers, taxi: loadTaxi, settings: loadSettings,
     };
     (loaders[item.dataset.section] || (()=>{}))();
   });
@@ -1967,6 +2003,128 @@ document.getElementById("ofList").addEventListener("click", async (e)=>{
       await apiSendAdmin(`/api/offers/admin/${d.dataset.ofDel}`, "DELETE");
       showToast("Offer deleted");
       loadOffers();
+    }
+  }catch(err){ showToast(err.message); }
+});
+
+/* ---------- TAXI FARES ---------- */
+let taxiRoutes = [];
+let taxiEditId = null;
+
+function fmtRupee(n){ return n > 0 ? "₹" + Number(n).toLocaleString("en-IN") : "—"; }
+
+async function loadTaxi(){
+  const el = document.getElementById("txList");
+  el.innerHTML = '<div class="empty">Loading…</div>';
+  try{
+    const data = await apiGetAdmin("/api/taxi/admin/all");
+    taxiRoutes = data.routes || [];
+    if(!taxiRoutes.length){ el.innerHTML = '<div class="empty">No routes yet. Add your first one above.</div>'; return; }
+    el.innerHTML = `<div style="overflow-x:auto;"><table><thead><tr><th>Route</th><th>KM</th><th>Sedan</th><th>Ertiga</th><th>Innova</th><th>Tempo</th><th>Status</th><th></th></tr></thead><tbody>${
+      taxiRoutes.map(r=>`<tr>
+        <td><b>${esc(r.from)}</b> → <b>${esc(r.to)}</b>${r.bothWays ? ' <span class="muted">(both ways)</span>' : ''}</td>
+        <td>${r.distanceKm ? esc(r.distanceKm) : "—"}</td>
+        <td>${fmtRupee(r.prices.sedan)}</td><td>${fmtRupee(r.prices.ertiga)}</td><td>${fmtRupee(r.prices.innova)}</td><td>${fmtRupee(r.prices.tempo)}</td>
+        <td>${r.active ? '<span class="pill green">Showing</span>' : '<span class="pill amber">Hidden</span>'}</td>
+        <td><div class="row-actions">
+          <button class="btn small" data-tx-edit="${esc(r.id)}">Edit</button>
+          <button class="btn small ghost" data-tx-toggle="${esc(r.id)}" data-tx-next="${r.active ? "off" : "on"}">${r.active ? "Hide" : "Show"}</button>
+          <button class="btn small coral" data-tx-del="${esc(r.id)}">Delete</button>
+        </div></td>
+      </tr>`).join("")
+    }</tbody></table></div>`;
+  }catch(err){ el.innerHTML = `<div class="empty">${esc(err.message)}</div>`; }
+}
+
+function resetTaxiForm(){
+  taxiEditId = null;
+  ["txFrom","txTo","txKm","txSedan","txErtiga","txInnova","txTempo"].forEach(id=>{ document.getElementById(id).value = ""; });
+  document.getElementById("txBoth").checked = true;
+  document.getElementById("txActive").checked = true;
+  document.getElementById("txFormTitle").textContent = "Add a taxi route";
+  document.getElementById("txSaveBtn").textContent = "Add route";
+  document.getElementById("txCancelBtn").style.display = "none";
+}
+
+function startTaxiEdit(id){
+  const r = taxiRoutes.find(x=>x.id === id);
+  if(!r) return;
+  taxiEditId = id;
+  document.getElementById("txFrom").value = r.from;
+  document.getElementById("txTo").value = r.to;
+  document.getElementById("txKm").value = r.distanceKm || "";
+  document.getElementById("txSedan").value = r.prices.sedan || "";
+  document.getElementById("txErtiga").value = r.prices.ertiga || "";
+  document.getElementById("txInnova").value = r.prices.innova || "";
+  document.getElementById("txTempo").value = r.prices.tempo || "";
+  document.getElementById("txBoth").checked = !!r.bothWays;
+  document.getElementById("txActive").checked = !!r.active;
+  document.getElementById("txFormTitle").textContent = `Edit route: ${r.from} → ${r.to}`;
+  document.getElementById("txSaveBtn").textContent = "Save changes";
+  document.getElementById("txCancelBtn").style.display = "";
+  document.getElementById("txFrom").scrollIntoView({ behavior:"smooth", block:"center" });
+}
+
+async function saveTaxiRoute(){
+  const msg = document.getElementById("txMsg");
+  const btn = document.getElementById("txSaveBtn");
+  msg.style.color = "var(--coral-deep)"; msg.textContent = "";
+  const body = {
+    from: document.getElementById("txFrom").value.trim(),
+    to: document.getElementById("txTo").value.trim(),
+    distanceKm: document.getElementById("txKm").value.trim(),
+    sedan: document.getElementById("txSedan").value.trim(),
+    ertiga: document.getElementById("txErtiga").value.trim(),
+    innova: document.getElementById("txInnova").value.trim(),
+    tempo: document.getElementById("txTempo").value.trim(),
+    bothWays: document.getElementById("txBoth").checked,
+    active: document.getElementById("txActive").checked,
+  };
+  if(!body.from || !body.to){ msg.textContent = "Please enter both From and To city."; return; }
+  btn.disabled = true;
+  try{
+    if(taxiEditId) await apiSendAdmin(`/api/taxi/admin/${taxiEditId}`, "PUT", body);
+    else await apiSendAdmin("/api/taxi/admin", "POST", body);
+    showToast(taxiEditId ? "Route updated" : "Route added");
+    resetTaxiForm();
+    loadTaxi();
+  }catch(err){ msg.textContent = err.message; }
+  finally{ btn.disabled = false; }
+}
+
+async function bulkTaxi(){
+  const msg = document.getElementById("txBulkMsg");
+  const btn = document.getElementById("txBulkBtn");
+  const lines = document.getElementById("txBulk").value;
+  msg.style.color = "var(--coral-deep)"; msg.textContent = "";
+  if(!lines.trim()){ msg.textContent = "Paste at least one line."; return; }
+  btn.disabled = true;
+  try{
+    const data = await apiSendAdmin("/api/taxi/admin/bulk", "POST", { lines });
+    const skipped = (data.skipped || []);
+    msg.style.color = skipped.length ? "var(--coral-deep)" : "var(--teal-deep)";
+    msg.textContent = `Added ${data.added}, updated ${data.updated}.` + (skipped.length ? ` Skipped: ${skipped.join(" | ")}` : "");
+    if(data.added || data.updated){ document.getElementById("txBulk").value = ""; showToast("Routes imported"); loadTaxi(); }
+  }catch(err){ msg.textContent = err.message; }
+  finally{ btn.disabled = false; }
+}
+
+document.getElementById("txList").addEventListener("click", async (e)=>{
+  const ed = e.target.closest("[data-tx-edit]");
+  const tg = e.target.closest("[data-tx-toggle]");
+  const dl = e.target.closest("[data-tx-del]");
+  try{
+    if(ed){ startTaxiEdit(ed.dataset.txEdit); }
+    else if(tg){
+      await apiSendAdmin(`/api/taxi/admin/${tg.dataset.txToggle}`, "PUT", { active: tg.dataset.txNext === "on" });
+      showToast(tg.dataset.txNext === "on" ? "Route is now showing" : "Route hidden");
+      loadTaxi();
+    } else if(dl){
+      if(!confirm("Delete this route permanently?")) return;
+      await apiSendAdmin(`/api/taxi/admin/${dl.dataset.txDel}`, "DELETE");
+      showToast("Route deleted");
+      if(taxiEditId === dl.dataset.txDel) resetTaxiForm();
+      loadTaxi();
     }
   }catch(err){ showToast(err.message); }
 });

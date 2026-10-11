@@ -11,6 +11,8 @@
     }
   ],
   "rewrites": [
+    { "source": "/taxi-fare-calculator", "destination": "/taxi-fare-calculator.html" },
+    { "source": "/taxi-fare/:slug", "destination": "/taxi-fare-calculator.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

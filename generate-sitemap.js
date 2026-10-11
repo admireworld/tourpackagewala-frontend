@@ -47,14 +47,26 @@ function urlEntry(loc, { changefreq = "weekly", priority = "0.8" } = {}) {
   return `  <url><loc>${loc}</loc><changefreq>${changefreq}</changefreq><priority>${priority}</priority></url>`;
 }
 
+// Taxi Service — one URL per route (/taxi-fare/<from>-to-<to>), straight from the backend.
+async function fetchTaxiRoutes() {
+  const res = await fetch(`${API_BASE_URL}/api/taxi/routes`);
+  if (!res.ok) throw new Error(`taxi: HTTP ${res.status}`);
+  const data = await res.json();
+  return data.routes || [];
+}
+
 async function main() {
   const [indiaPackages, intlPackages] = await Promise.all([
     fetchPackages("india").catch((err) => { console.error("Could not fetch India packages:", err.message); return []; }),
     fetchPackages("international").catch((err) => { console.error("Could not fetch International packages:", err.message); return []; }),
   ]);
 
+  const taxiRoutes = await fetchTaxiRoutes().catch((err) => { console.error("Could not fetch taxi routes:", err.message); return []; });
+  const taxiEntries = taxiRoutes.map((r) => urlEntry(`${SITE_ORIGIN}/taxi-fare/${r.slug}`, { changefreq: "weekly", priority: "0.7" }));
+
   const staticEntries = [
     urlEntry(`${SITE_ORIGIN}/`, { changefreq: "daily", priority: "1.0" }),
+    urlEntry(`${SITE_ORIGIN}/taxi-fare-calculator`, { changefreq: "weekly", priority: "0.8" }),
     urlEntry(`${SITE_ORIGIN}/policies.html`, { changefreq: "yearly", priority: "0.3" }),
   ];
 
@@ -70,11 +82,14 @@ ${indiaEntries.join("\n") || "  <!-- none returned by the backend -->"}
 
   <!-- International packages (/package/international/<slug>--<id>) -->
 ${intlEntries.join("\n") || "  <!-- none returned by the backend -->"}
+
+  <!-- Taxi fare routes (/taxi-fare/<from>-to-<to>) -->
+${taxiEntries.join("\n") || "  <!-- none returned by the backend -->"}
 </urlset>
 `;
 
   fs.writeFileSync(OUTPUT_PATH, xml);
-  console.log(`Wrote ${OUTPUT_PATH} with ${indiaEntries.length} India + ${intlEntries.length} International package URLs.`);
+  console.log(`Wrote ${OUTPUT_PATH} with ${indiaEntries.length} India + ${intlEntries.length} International package URLs + ${taxiEntries.length} taxi route URLs.`);
 }
 
 main().catch((err) => {
