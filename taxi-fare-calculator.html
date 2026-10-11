@@ -45,181 +45,192 @@
 
 <style>
 :root{
-  --navy:#2B3968; --navy-deep:#1A2340; --teal:#3D5FA8; --teal-deep:#2C4680;
-  --amber:#E3A23E; --amber-deep:#C98620; --coral:#D14B3D;
-  --sand:#E7EAF1; --sand-soft:#F2F3F6; --ink:#1D2433; --ink-soft:#5B6472;
-  --cloud:#FFFFFF; --line:#E2E5EB; --wa:#25D366; --wa-deep:#1DA851;
+  --blue:#3b5bdb; --blue-deep:#2f4bc0; --navy:#1b2a5e; --ink:#1D2433; --ink-soft:#5B6472;
+  --line:#cfd8ea; --cloud:#fff; --sand-soft:#F2F3F6; --wa:#25D366; --wa-deep:#1DA851; --coral:#D14B3D;
   --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-  --radius-m:10px; --radius-l:16px;
-  --shadow-card:0 1px 2px rgba(16,24,40,0.04), 0 8px 28px rgba(16,24,40,0.10);
+  --shadow:0 2px 6px rgba(27,42,94,.06),0 10px 26px rgba(27,42,94,.08);
 }
 *{box-sizing:border-box;}
 html{scroll-behavior:smooth;}
-body{margin:0;font-family:var(--sans);color:var(--ink);background:var(--cloud);line-height:1.6;min-height:100vh;display:flex;flex-direction:column;}
-a{color:var(--teal);}
-h1,h2,h3{color:var(--navy);margin:0;line-height:1.2;}
+body{margin:0;font-family:var(--sans);color:var(--ink);background:#fff;line-height:1.55;min-height:100vh;display:flex;flex-direction:column;}
+a{color:var(--blue);}
+h1,h2,h3{margin:0;line-height:1.2;color:var(--navy);}
 
-/* top bar (same look as policies.html) */
-.top-bar{background:var(--navy);padding:14px 24px;}
-.top-bar-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;}
-.brand{color:#fff;font-weight:700;font-size:18px;text-decoration:none;}
-.brand em{font-style:normal;color:var(--amber);}
-.back-link{color:#dbe2f0;font-size:13.5px;text-decoration:none;}
-.back-link:hover{color:#fff;}
+/* blue header bar */
+.top-bar{background:var(--blue);padding:18px 28px;}
+.top-bar-inner{max-width:1240px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;}
+.top-bar h1{color:#fff;font-size:clamp(24px,4.2vw,44px);font-weight:700;letter-spacing:-.4px;text-shadow:0 2px 6px rgba(0,0,0,.18);}
+.top-nav{display:flex;gap:30px;}
+.top-nav a{color:#fff;text-decoration:none;font-weight:600;font-size:17px;}
+.top-nav a:hover{text-decoration:underline;}
 
-/* hero banner */
-.hero{background:linear-gradient(180deg,#c3d4f7 0%,#b9cdf5 100%);padding:44px 24px 110px;position:relative;overflow:hidden;}
-.hero::before{content:"";position:absolute;inset:0;
-  background-image:radial-gradient(rgba(255,255,255,.55) 2px,transparent 2.5px);background-size:26px 26px;
-  -webkit-mask-image:linear-gradient(90deg,#000 0%,transparent 28%,transparent 72%,#000 100%);
-  mask-image:linear-gradient(90deg,#000 0%,transparent 28%,transparent 72%,#000 100%);opacity:.7;}
-.hero-inner{max-width:1000px;margin:0 auto;position:relative;}
-.hero h1{font-size:clamp(28px,5vw,46px);font-weight:800;letter-spacing:-.5px;color:var(--navy-deep);}
-.hero p{margin:10px 0 0;color:#fff;font-size:clamp(14px,2vw,17px);font-weight:500;text-shadow:0 1px 3px rgba(26,35,64,.35);}
+.wrap{max-width:1240px;margin:0 auto;padding:46px 28px 70px;width:100%;flex:1;}
+.intro{text-align:center;margin-bottom:34px;}
+.intro h2{font-size:clamp(24px,3.6vw,38px);font-weight:800;letter-spacing:-.4px;}
+.intro p{margin:10px 0 0;color:var(--ink-soft);font-size:clamp(15px,2vw,19px);}
 
-.wrap{max-width:1000px;margin:0 auto;padding:0 24px 70px;width:100%;flex:1;}
+/* three input cards */
+.trip-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;}
+.trip-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:24px 26px 28px;box-shadow:var(--shadow);}
+.trip-card label{display:block;font-size:17px;color:var(--ink);margin-bottom:14px;}
+.field{position:relative;}
+.field svg.lead{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:22px;height:22px;color:#7b8396;pointer-events:none;}
+.field select,.field input{width:100%;height:58px;border:1px solid var(--line);border-radius:9px;background:#fff;font:inherit;font-size:18px;color:var(--ink);
+  padding:0 16px 0 52px;box-shadow:0 2px 6px rgba(27,42,94,.06);}
+.field select{appearance:none;-webkit-appearance:none;cursor:pointer;padding-right:44px;
+  background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9'%3E%3Cpath d='M1 1.5l6 6 6-6' fill='none' stroke='%231D2433' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 18px center;}
+.field select:focus,.field input:focus{outline:2px solid var(--blue);outline-offset:1px;border-color:var(--blue);}
 
-/* calculator card */
-.calc-card{background:var(--cloud);border-radius:var(--radius-l);box-shadow:var(--shadow-card);padding:28px 32px 26px;margin-top:-72px;position:relative;}
-.calc-card h2{font-size:22px;font-weight:700;display:flex;align-items:center;gap:12px;margin-bottom:18px;}
-.calc-card h2 svg{width:38px;height:38px;flex-shrink:0;}
-.calc-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
-.f-field label{display:block;font-size:16px;font-weight:500;color:var(--ink);margin-bottom:8px;}
-.f-field select{width:100%;appearance:none;-webkit-appearance:none;background:#fff
-  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9'%3E%3Cpath d='M1 1.5l6 6 6-6' fill='none' stroke='%231D2433' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
-  no-repeat right 18px center;
-  border:1px solid #cfd5df;border-radius:10px;padding:14px 44px 14px 16px;font:inherit;font-size:17px;color:var(--ink);cursor:pointer;}
-.f-field select:focus{outline:2px solid var(--teal);outline-offset:1px;}
-.calc-actions{display:flex;justify-content:flex-end;margin-top:20px;}
-.btn-calc{display:inline-flex;align-items:center;gap:10px;background:var(--teal-deep);color:#fff;border:0;border-radius:8px;
-  padding:13px 24px;font:inherit;font-size:16px;font-weight:600;cursor:pointer;transition:background .15s,transform .1s;}
-.btn-calc:hover{background:var(--navy);}
+/* vehicles */
+.veh-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin:30px 0 18px;flex-wrap:wrap;}
+.veh-head h2{font-size:clamp(24px,3.2vw,34px);font-weight:800;}
+.btn-calc{background:var(--blue);color:#fff;border:0;border-radius:9px;padding:15px 38px;font:inherit;font-size:19px;font-weight:700;cursor:pointer;
+  box-shadow:0 6px 16px rgba(59,91,219,.32);transition:background .15s,transform .1s;}
+.btn-calc:hover{background:var(--blue-deep);}
 .btn-calc:active{transform:translateY(1px);}
-.btn-calc svg{width:20px;height:20px;}
-
-/* pricing details */
-.pricing{margin-top:34px;padding:0 6px;}
-.pricing h2{font-size:26px;font-weight:700;margin-bottom:14px;}
-.route-line{font-size:15px;color:var(--ink-soft);margin:-6px 0 14px;}
-.table-wrap{overflow-x:auto;border:1px solid #b9c7e6;border-radius:4px;}
-table.fare{width:100%;border-collapse:collapse;min-width:640px;font-size:17px;}
-table.fare th{background:#bcd0f4;color:var(--navy-deep);font-weight:700;font-size:16px;text-align:center;padding:14px 10px;border:1px solid #a9bde3;}
-table.fare td{background:#e7effc;text-align:center;padding:20px 10px;border:1px solid #b9c7e6;font-weight:700;color:var(--navy-deep);font-size:20px;}
-table.fare td.route{text-align:left;font-weight:500;font-size:19px;padding-left:16px;}
-table.fare td.dist{font-weight:500;color:var(--ink-soft);}
-table.fare td.na{font-size:15px;color:var(--ink-soft);font-weight:600;}
-.fare-notes{list-style:none;margin:14px 0 0;padding:0;font-size:14px;color:var(--ink);display:flex;flex-direction:column;gap:2px;}
-.fare-notes li{display:flex;gap:6px;align-items:flex-start;}
-.fare-notes .ic{flex-shrink:0;width:16px;height:16px;margin-top:3px;color:var(--ink-soft);}
+.route-line{font-size:15px;color:var(--ink-soft);margin:0 0 14px;min-height:22px;}
+.route-line b{color:var(--navy);}
+.veh-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;}
+.veh-card{position:relative;background:#fff;border:1px solid var(--line);border-radius:12px;padding:26px 14px 22px;text-align:center;cursor:pointer;
+  font:inherit;color:inherit;box-shadow:var(--shadow);transition:border-color .15s,box-shadow .15s,transform .15s;}
+.veh-card:hover{transform:translateY(-2px);}
+.veh-card.sel{border:2px solid var(--blue);box-shadow:0 8px 24px rgba(59,91,219,.20);}
+.veh-card .tick{display:none;position:absolute;top:14px;right:14px;width:26px;height:26px;border-radius:50%;background:var(--blue);}
+.veh-card.sel .tick{display:block;}
+.veh-card .tick::after{content:"";position:absolute;left:9px;top:5px;width:6px;height:11px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg);}
+.veh-img{height:100px;display:flex;align-items:flex-end;justify-content:center;margin-bottom:14px;}
+.veh-img svg{width:170px;height:100px;}
+.veh-card h3{font-size:25px;font-weight:800;margin-bottom:6px;}
+.veh-card .cap{font-size:15px;color:var(--ink);}
+.veh-card .fare{margin-top:6px;font-size:19px;font-weight:800;color:var(--blue);}
+.veh-card .fare.na{font-size:16px;color:var(--ink-soft);}
+.fare-note{text-align:center;margin:20px 0 0;font-size:15px;color:var(--ink);}
+.extra-notes{list-style:none;margin:6px 0 0;padding:0;text-align:center;font-size:13.5px;color:var(--ink-soft);}
 
 /* WhatsApp CTA (just under the fare) */
-.wa-box{margin-top:22px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
-  background:#f1fbf5;border:1px solid #cdeedb;border-radius:var(--radius-m);padding:16px 20px;}
-.wa-box p{margin:0;font-size:15px;color:var(--ink);font-weight:500;}
-.wa-box p small{display:block;color:var(--ink-soft);font-weight:400;font-size:13px;}
-.btn-wa{display:inline-flex;align-items:center;justify-content:center;gap:9px;background:var(--wa);color:#fff;font-weight:700;font-size:16px;
-  padding:13px 24px;border-radius:99px;text-decoration:none;transition:background .2s,transform .15s;white-space:nowrap;}
+.wa-box{margin:26px auto 0;max-width:760px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  background:#f1fbf5;border:1px solid #cdeedb;border-radius:12px;padding:16px 22px;}
+.wa-box p{margin:0;font-size:16px;font-weight:600;color:var(--ink);}
+.wa-box p small{display:block;color:var(--ink-soft);font-weight:400;font-size:13.5px;}
+.btn-wa{display:inline-flex;align-items:center;justify-content:center;gap:9px;background:var(--wa);color:#fff;font-weight:700;font-size:17px;
+  padding:14px 28px;border-radius:99px;text-decoration:none;transition:background .2s,transform .15s;white-space:nowrap;}
 .btn-wa:hover{background:var(--wa-deep);color:#fff;transform:translateY(-1px);}
 .btn-wa svg{width:22px;height:22px;fill:#fff;flex-shrink:0;}
 
-.state-msg{padding:26px;text-align:center;color:var(--ink-soft);background:var(--sand-soft);border-radius:var(--radius-m);}
+.state-msg{padding:26px;text-align:center;color:var(--ink-soft);background:var(--sand-soft);border-radius:12px;grid-column:1/-1;}
 .state-msg.err{color:var(--coral);}
 
 /* SEO content blocks */
-.seo-block{margin-top:44px;}
-.seo-block h2{font-size:22px;font-weight:700;margin-bottom:12px;}
-.faq-item{border-bottom:1px solid var(--line);padding:14px 0;}
-.faq-item h3{font-size:16px;font-weight:600;margin-bottom:6px;}
-.faq-item p{margin:0;font-size:15px;color:var(--ink-soft);}
-.route-links{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;margin-top:6px;}
-.route-links a{display:flex;justify-content:space-between;gap:10px;background:var(--sand-soft);border:1px solid var(--line);border-radius:10px;
-  padding:12px 14px;text-decoration:none;color:var(--navy);font-weight:600;font-size:14.5px;}
-.route-links a:hover{background:var(--sand);}
+.seo-block{margin-top:48px;}
+.seo-block h2{font-size:24px;font-weight:800;margin-bottom:12px;}
+.faq-item{border-bottom:1px solid #e2e5eb;padding:14px 0;}
+.faq-item h3{font-size:17px;font-weight:700;margin-bottom:6px;}
+.faq-item p{margin:0;font-size:15.5px;color:var(--ink-soft);}
+.route-links{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:6px;}
+.route-links a{display:flex;justify-content:space-between;gap:10px;background:#fff;border:1px solid var(--line);border-radius:10px;
+  padding:13px 16px;text-decoration:none;color:var(--navy);font-weight:600;font-size:15px;}
+.route-links a:hover{border-color:var(--blue);}
 .route-links a span{color:var(--ink-soft);font-weight:500;white-space:nowrap;}
 
-footer.site-foot{background:var(--sand-soft);border-top:1px solid var(--line);padding:22px 24px;font-size:13.5px;color:var(--ink-soft);}
-.foot-inner{max-width:1000px;margin:0 auto;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;}
+footer.site-foot{background:var(--sand-soft);border-top:1px solid #e2e5eb;padding:22px 28px;font-size:13.5px;color:var(--ink-soft);}
+.foot-inner{max-width:1240px;margin:0 auto;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;}
 .foot-inner a{color:var(--ink-soft);text-decoration:none;margin-left:18px;}
 .foot-inner a:first-child{margin-left:0;}
 .foot-inner a:hover{color:var(--navy);}
 
+@media (max-width:1000px){
+  .veh-grid{grid-template-columns:repeat(2,1fr);}
+  .trip-grid{grid-template-columns:1fr;gap:16px;}
+}
 @media (max-width:640px){
-  .hero{padding:32px 18px 100px;}
-  .calc-card{padding:22px 18px;margin-top:-64px;}
-  .calc-grid{grid-template-columns:1fr;gap:14px;}
-  .btn-calc{width:100%;justify-content:center;}
-  .wrap{padding:0 14px 60px;}
+  .top-bar{padding:14px 16px;}
+  .top-nav{gap:18px;}
+  .top-nav a{font-size:15px;}
+  .wrap{padding:30px 14px 56px;}
+  .veh-grid{gap:12px;}
+  .veh-card{padding:20px 8px 16px;}
+  .veh-img svg{width:130px;height:78px;}
+  .veh-img{height:78px;}
+  .veh-card h3{font-size:20px;}
+  .btn-calc{width:100%;}
+  .veh-head{align-items:stretch;}
   .wa-box{flex-direction:column;align-items:stretch;text-align:center;}
 }
 </style>
 </head>
 <body>
 
-<div class="top-bar">
+<header class="top-bar">
   <div class="top-bar-inner">
-    <a class="brand" href="/">AdmireD<em>world</em> Travel</a>
-    <a class="back-link" href="/">&larr; Back to site</a>
+    <h1>Taxi Service Fare Calculator</h1>
+    <nav class="top-nav" aria-label="Main">
+      <a href="/">Home</a>
+      <a href="/#india">Services</a>
+      <a id="supportLink" href="https://wa.me/919639343585" target="_blank" rel="noopener">Support</a>
+    </nav>
   </div>
-</div>
-
-<section class="hero">
-  <div class="hero-inner">
-    <h1>Taxi Service — Fare Calculator</h1>
-    <p>Get instant fare estimate for your journey. Transparent pricing, no hidden charges.</p>
-  </div>
-</section>
+</header>
 
 <main class="wrap">
 
-  <section class="calc-card" aria-labelledby="calcHeading">
-    <h2 id="calcHeading">
-      <svg viewBox="0 0 64 64" fill="#1A2340" aria-hidden="true"><path d="M24 6h16v6h-4v2h4a8 8 0 0 1 7.6 5.5l2 6.2A8 8 0 0 1 58 33v13h-5v6a3 3 0 0 1-3 3h-4a3 3 0 0 1-3-3v-6H21v6a3 3 0 0 1-3 3h-4a3 3 0 0 1-3-3v-6H6V33a8 8 0 0 1 6.4-7.8l2-6.2A8 8 0 0 1 22 14h4v-2h-2V6Zm-2 14a3 3 0 0 0-2.9 2.1L17.4 27h29.2l-1.7-4.9A3 3 0 0 0 42 20H22ZM15 38a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm34 0a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/></svg>
-      Calculate Your Fare
-    </h2>
-    <div class="calc-grid">
-      <div class="f-field">
-        <label for="fromCity">From City</label>
+  <div class="intro">
+    <h2>Plan Your Ride — Get Instant Fare Estimate</h2>
+    <p>Enter your trip details to calculate fare across different vehicle options</p>
+  </div>
+
+  <section class="trip-grid" aria-label="Trip details">
+    <div class="trip-card">
+      <label for="fromCity">From City</label>
+      <div class="field">
+        <svg class="lead" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.1-7-11.2A7 7 0 0 1 19 9.8C19 14.9 12 21 12 21Z"/><circle cx="12" cy="10" r="2.6"/></svg>
         <select id="fromCity" aria-label="From city"><option>Loading…</option></select>
       </div>
-      <div class="f-field">
-        <label for="toCity">To City</label>
+    </div>
+    <div class="trip-card">
+      <label for="toCity">To City</label>
+      <div class="field">
+        <svg class="lead" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.1-7-11.2A7 7 0 0 1 19 9.8C19 14.9 12 21 12 21Z"/><circle cx="12" cy="10" r="2.6"/></svg>
         <select id="toCity" aria-label="To city"><option>Loading…</option></select>
       </div>
     </div>
-    <div class="calc-actions">
-      <button type="button" class="btn-calc" id="calcBtn">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-        Calculate Fare
-      </button>
-    </div>
-  </section>
-
-  <section class="pricing" aria-labelledby="pricingHeading" aria-live="polite">
-    <h2 id="pricingHeading">Pricing Details</h2>
-    <p class="route-line" id="routeLine"></p>
-    <div id="fareArea">
-      <!-- Crawler-visible fallback (replaced as soon as live fares load from the backend). -->
-      <div class="table-wrap">
-        <table class="fare">
-          <thead><tr><th>Route</th><th>Distance</th><th>Sedan Price</th><th>Ertiga Price</th><th>Innova Price</th><th>Tempo Traveller Price</th></tr></thead>
-          <tbody><tr><td class="route">Haldwani to Nainital</td><td class="dist">35 KM</td><td>₹1500</td><td>₹2000</td><td>₹2500</td><td>₹4000</td></tr></tbody>
-        </table>
+    <div class="trip-card">
+      <label for="journeyDate">Journey Date</label>
+      <div class="field">
+        <svg class="lead" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>
+        <input type="date" id="journeyDate" aria-label="Journey date">
       </div>
     </div>
-    <ul class="fare-notes" id="fareNotes">
-      <li><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v5h1"/></svg><span>All prices are inclusive of driver allowance, fuel &amp; tolls. Extra night charges ₹300/night may apply.</span></li>
-      <li><svg class="ic" style="visibility:hidden" viewBox="0 0 24 24"></svg><span>Pricing is approximate and may vary based on demand &amp; time.</span></li>
-    </ul>
-
-    <!-- WhatsApp button, right below the fare -->
-    <div class="wa-box" id="waBox">
-      <p>Want to book this taxi? <small>Chat with us on WhatsApp for the final quote &amp; availability.</small></p>
-      <a class="btn-wa" id="waBtn" href="https://wa.me/919639343585" target="_blank" rel="noopener">
-        <svg viewBox="0 0 24 24"><path d="M17.5 14.4c-.3-.1-1.6-.8-1.9-.9-.2-.1-.4-.1-.6.1-.2.3-.7.9-.8 1-.2.2-.3.2-.5.1-.3-.1-1.2-.4-2.2-1.4-.8-.7-1.4-1.6-1.5-1.9-.2-.3 0-.4.1-.6.1-.1.3-.3.4-.5.1-.1.2-.3.2-.4.1-.2 0-.3 0-.5-.1-.1-.6-1.5-.8-2-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.3-.9.9-.9 2.2s.9 2.5 1.1 2.7c.1.2 1.9 2.9 4.6 4 .6.3 1.1.4 1.5.6.6.2 1.2.2 1.6.1.5-.1 1.6-.6 1.8-1.3.2-.6.2-1.1.2-1.2-.1-.2-.2-.2-.5-.3z"/><path d="M12 2C6.5 2 2 6.5 2 12c0 1.9.5 3.6 1.4 5.2L2 22l4.9-1.3C8.4 21.5 10.1 22 12 22c5.5 0 10-4.5 10-10S17.5 2 12 2zm0 18.2c-1.7 0-3.3-.5-4.6-1.3l-.3-.2-3 .8.8-2.9-.2-.3C3.9 15 3.3 13.5 3.3 12c0-4.8 3.9-8.7 8.7-8.7s8.7 3.9 8.7 8.7-3.9 8.7-8.7 8.7z"/></svg>
-        Book on WhatsApp
-      </a>
-    </div>
   </section>
+
+  <div class="veh-head">
+    <h2 id="vehHeading">Choose Your Vehicle</h2>
+    <button type="button" class="btn-calc" id="calcBtn">Calculate Fare</button>
+  </div>
+
+  <p class="route-line" id="routeLine" aria-live="polite"></p>
+
+  <section id="vehGrid" class="veh-grid" aria-labelledby="vehHeading" aria-live="polite">
+    <!-- Crawler-visible fallback (replaced as soon as live fares load from the backend). -->
+    <div class="veh-card sel"><h3>Sedan</h3><div class="cap">Capacity: 4 seats • AC</div><div class="fare">Est. Fare: ₹1,500</div></div>
+    <div class="veh-card"><h3>Ertiga</h3><div class="cap">Capacity: 6 seats • AC</div><div class="fare">Est. Fare: ₹2,000</div></div>
+    <div class="veh-card"><h3>Innova</h3><div class="cap">Capacity: 7 seats • AC</div><div class="fare">Est. Fare: ₹2,500</div></div>
+    <div class="veh-card"><h3>Tempo Traveller</h3><div class="cap">Capacity: 12 seats • AC</div><div class="fare">Est. Fare: ₹4,000</div></div>
+  </section>
+
+  <p class="fare-note">Fares are estimated based on distance and may vary • Inclusive of tolls &amp; taxes</p>
+  <ul class="extra-notes" id="fareNotes">
+    <li>All prices are inclusive of driver allowance, fuel &amp; tolls. Extra night charges ₹300/night may apply.</li>
+    <li>Pricing is approximate and may vary based on demand &amp; time.</li>
+  </ul>
+
+  <!-- WhatsApp button, right below the fare -->
+  <div class="wa-box" id="waBox">
+    <p>Want to book this taxi? <small>Chat with us on WhatsApp for the final quote &amp; availability.</small></p>
+    <a class="btn-wa" id="waBtn" href="https://wa.me/919639343585" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24"><path d="M17.5 14.4c-.3-.1-1.6-.8-1.9-.9-.2-.1-.4-.1-.6.1-.2.3-.7.9-.8 1-.2.2-.3.2-.5.1-.3-.1-1.2-.4-2.2-1.4-.8-.7-1.4-1.6-1.5-1.9-.2-.3 0-.4.1-.6.1-.1.3-.3.4-.5.1-.1.2-.3.2-.4.1-.2 0-.3 0-.5-.1-.1-.6-1.5-.8-2-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.3-.9.9-.9 2.2s.9 2.5 1.1 2.7c.1.2 1.9 2.9 4.6 4 .6.3 1.1.4 1.5.6.6.2 1.2.2 1.6.1.5-.1 1.6-.6 1.8-1.3.2-.6.2-1.1.2-1.2-.1-.2-.2-.2-.5-.3z"/><path d="M12 2C6.5 2 2 6.5 2 12c0 1.9.5 3.6 1.4 5.2L2 22l4.9-1.3C8.4 21.5 10.1 22 12 22c5.5 0 10-4.5 10-10S17.5 2 12 2zm0 18.2c-1.7 0-3.3-.5-4.6-1.3l-.3-.2-3 .8.8-2.9-.2-.3C3.9 15 3.3 13.5 3.3 12c0-4.8 3.9-8.7 8.7-8.7s8.7 3.9 8.7 8.7-3.9 8.7-8.7 8.7z"/></svg>
+      Book on WhatsApp
+    </a>
+  </div>
 
   <section class="seo-block" id="faqBlock" hidden aria-labelledby="faqHeading">
     <h2 id="faqHeading">Taxi fare FAQs</h2>
@@ -250,18 +261,45 @@ footer.site-foot{background:var(--sand-soft);border-top:1px solid var(--line);pa
   var WHATSAPP_NUMBER = "919639343585"; // overridden by Admin → Settings (GET /api/settings)
 
   var VEHICLES = [
-    { key: "sedan",  label: "Sedan" },
-    { key: "ertiga", label: "Ertiga" },
-    { key: "innova", label: "Innova" },
-    { key: "tempo",  label: "Tempo Traveller" }
+    { key: "sedan",  label: "Sedan",           seats: 4  },
+    { key: "ertiga", label: "Ertiga",          seats: 6  },
+    { key: "innova", label: "Innova",          seats: 7  },
+    { key: "tempo",  label: "Tempo Traveller", seats: 12 }
   ];
+  var selectedVehicle = "sedan";
+
+  // Simple front-view illustrations (inline SVG, no image files needed).
+  var WHEELS = '<rect x="40" y="72" width="16" height="12" rx="3" fill="#23272f"/><rect x="104" y="72" width="16" height="12" rx="3" fill="#23272f"/>';
+  var SHADOW = '<ellipse cx="80" cy="86" rx="56" ry="3.5" fill="#000" opacity=".13"/>';
+  var VEH_SVG = {
+    sedan: '<svg viewBox="0 0 160 92" aria-hidden="true">' + SHADOW +
+      '<path d="M36 74V54q0-9 9-13l9-17q3-5 9-5h34q6 0 9 5l9 17q9 4 9 13v20z" fill="#6f86b8"/>' +
+      '<path d="M57 27h46l8 14H49z" fill="#e3ebf8"/><path d="M80 27v14" stroke="#6f86b8" stroke-width="1.5"/>' +
+      '<rect x="34" y="60" width="92" height="14" rx="6" fill="#5a70a3"/>' +
+      '<ellipse cx="49" cy="53" rx="8" ry="4.5" fill="#f4f7fd"/><ellipse cx="111" cy="53" rx="8" ry="4.5" fill="#f4f7fd"/>' +
+      '<rect x="64" y="50" width="32" height="9" rx="2" fill="#3b4a70"/><rect x="68" y="53" width="24" height="3" fill="#aab6d3"/>' + WHEELS + '</svg>',
+    mpv: '<svg viewBox="0 0 160 92" aria-hidden="true">' + SHADOW +
+      '<path d="M34 74V46q0-10 9-14l8-18q3-6 9-6h44q6 0 9 6l8 18q9 4 9 14v28z" fill="#e6e9ef"/>' +
+      '<path d="M53 20h54l7 20H46z" fill="#9fb2d4"/><path d="M80 20v20" stroke="#e6e9ef" stroke-width="2"/>' +
+      '<rect x="32" y="60" width="96" height="14" rx="6" fill="#c3c9d6"/>' +
+      '<path d="M40 48q0-5 6-6l14 3v8H44q-4 0-4-5z" fill="#fbfcfe" stroke="#c3c9d6"/><path d="M120 48q0-5-6-6l-14 3v8h16q4 0 4-5z" fill="#fbfcfe" stroke="#c3c9d6"/>' +
+      '<rect x="64" y="48" width="32" height="10" rx="2" fill="#7b8396"/><rect x="68" y="51" width="24" height="3" fill="#d5d9e2"/>' + WHEELS + '</svg>',
+    van: '<svg viewBox="0 0 160 92" aria-hidden="true">' + SHADOW +
+      '<path d="M32 74V22q0-10 10-10h76q10 0 10 10v52z" fill="#f1f3f7" stroke="#cdd2dc" stroke-width="1.5"/>' +
+      '<path d="M42 20h76l4 26H38z" fill="#9fb2d4"/><path d="M80 20v26" stroke="#f1f3f7" stroke-width="2"/>' +
+      '<rect x="30" y="62" width="100" height="12" rx="5" fill="#c3c9d6"/>' +
+      '<rect x="38" y="52" width="14" height="7" rx="3" fill="#fff" stroke="#cdd2dc"/><rect x="108" y="52" width="14" height="7" rx="3" fill="#fff" stroke="#cdd2dc"/>' +
+      '<rect x="64" y="52" width="32" height="8" rx="2" fill="#7b8396"/>' + WHEELS + '</svg>'
+  };
+  var VEH_ART = { sedan: "sedan", ertiga: "mpv", innova: "mpv", tempo: "van" };
 
   var routes = [];
   var notes = [];
   var graph = {};          // "haldwani" -> { name, to: { "nainital": { name, route } } }
   var fromSel = document.getElementById("fromCity");
   var toSel = document.getElementById("toCity");
-  var fareArea = document.getElementById("fareArea");
+  var vehGrid = document.getElementById("vehGrid");
+  var dateInput = document.getElementById("journeyDate");
   var routeLine = document.getElementById("routeLine");
 
   function esc(s){
@@ -307,29 +345,40 @@ footer.site-foot{background:var(--sand-soft);border-top:1px solid var(--line);pa
   }
 
   /* ---------- fare table ---------- */
-  function cell(v){ return v > 0 ? '<td>'+money(v)+'</td>' : '<td class="na">On request</td>'; }
-  function fareTableHTML(label, route){
-    var p = route.prices;
-    return '<div class="table-wrap"><table class="fare"><thead><tr>'
-      + '<th>Route</th><th>Distance</th>'
-      + VEHICLES.map(function(v){ return '<th>'+esc(v.label)+' Price</th>'; }).join("")
-      + '</tr></thead><tbody><tr>'
-      + '<td class="route">'+esc(label)+'</td>'
-      + '<td class="dist">'+(route.distanceKm > 0 ? esc(route.distanceKm)+' KM' : '—')+'</td>'
-      + VEHICLES.map(function(v){ return cell(p[v.key]); }).join("")
-      + '</tr></tbody></table></div>';
+  var currentRoute = null; // the route object currently shown
+  function vehicleCardsHTML(route){
+    return VEHICLES.map(function(v){
+      var price = route ? route.prices[v.key] : 0;
+      var fare = price > 0 ? '<div class="fare">Est. Fare: ' + money(price) + '</div>' : '<div class="fare na">Fare on request</div>';
+      var sel = v.key === selectedVehicle;
+      return '<button type="button" class="veh-card' + (sel ? " sel" : "") + '" data-veh="' + v.key + '" aria-pressed="' + sel + '">'
+        + '<span class="tick" aria-hidden="true"></span>'
+        + '<div class="veh-img">' + VEH_SVG[VEH_ART[v.key]] + '</div>'
+        + '<h3>' + esc(v.label) + '</h3>'
+        + '<div class="cap">Capacity: ' + v.seats + ' seats • AC</div>'
+        + fare + '</button>';
+    }).join("");
+  }
+  function todayISO(){
+    var d = new Date(), m = String(d.getMonth()+1).padStart(2,"0"), day = String(d.getDate()).padStart(2,"0");
+    return d.getFullYear() + "-" + m + "-" + day;
+  }
+  function prettyDate(iso){
+    if(!iso) return "";
+    var p = iso.split("-"); if(p.length !== 3) return "";
+    try{ return new Date(+p[0], +p[1]-1, +p[2]).toLocaleDateString("en-IN", { day:"numeric", month:"short", year:"numeric" }); }catch(e){ return ""; }
   }
 
   /* ---------- WhatsApp link ---------- */
   function setWhatsApp(from, to, route){
-    var lines = ["Hi AdmireDworld Travel! I'd like to book a taxi from " + from + " to " + to + "."];
-    if(route){
-      var p = route.prices, parts = [];
-      VEHICLES.forEach(function(v){ if(p[v.key] > 0) parts.push(v.label + " " + money(p[v.key])); });
-      if(parts.length) lines.push("Fare shown on website: " + parts.join(", ") + ".");
-    }
-    lines.push("Please confirm availability.");
-    document.getElementById("waBtn").href = "https://wa.me/" + WHATSAPP_NUMBER + "?text=" + encodeURIComponent(lines.join(" "));
+    var veh = VEHICLES.filter(function(v){ return v.key === selectedVehicle; })[0] || VEHICLES[0];
+    var when = prettyDate(dateInput.value);
+    var msg = "Hi AdmireDworld Travel! I'd like to book a taxi from " + from + " to " + to + (when ? " on " + when : "") + ". Vehicle: " + veh.label + ".";
+    if(route && route.prices[veh.key] > 0) msg += " Fare shown on website: " + money(route.prices[veh.key]) + ".";
+    msg += " Please confirm availability.";
+    document.getElementById("waBtn").href = "https://wa.me/" + WHATSAPP_NUMBER + "?text=" + encodeURIComponent(msg);
+    var sup = document.getElementById("supportLink");
+    if(sup) sup.href = "https://wa.me/" + WHATSAPP_NUMBER;
   }
 
   /* ---------- SEO: title / meta / canonical / schema / FAQ ---------- */
@@ -430,15 +479,17 @@ footer.site-foot{background:var(--sand-soft);border-top:1px solid var(--line);pa
     var node = graph[key(fromSel.value)];
     var hit = node && node.to[key(toSel.value)];
     if(!hit){
-      fareArea.innerHTML = '<div class="state-msg">No fare found for this route yet. Please contact us on WhatsApp for a quote.</div>';
+      currentRoute = null;
+      vehGrid.innerHTML = '<div class="state-msg">No fare found for this route yet. Please contact us on WhatsApp for a quote.</div>';
       routeLine.textContent = "";
       setWhatsApp(fromSel.value, toSel.value, null);
       updateSEO(fromSel.value, toSel.value, null);
       return;
     }
     var from = node.name, to = hit.name;
-    fareArea.innerHTML = fareTableHTML(from + " to " + to, hit.route);
-    routeLine.textContent = "Taxi fare from " + from + " to " + to;
+    currentRoute = hit.route;
+    vehGrid.innerHTML = vehicleCardsHTML(hit.route);
+    routeLine.innerHTML = "Taxi fare from <b>" + esc(from) + "</b> to <b>" + esc(to) + "</b>" + (hit.route.distanceKm > 0 ? " • " + esc(hit.route.distanceKm) + " KM" : "");
     setWhatsApp(from, to, hit.route);
     updateSEO(from, to, hit.route);
     if(!opts.silent){ updateURL(from, to); track("taxi_fare_calculated", { from: from, to: to }); }
@@ -446,13 +497,7 @@ footer.site-foot{background:var(--sand-soft);border-top:1px solid var(--line);pa
 
   function renderNotes(){
     if(!notes.length) return;
-    var ul = document.getElementById("fareNotes");
-    ul.innerHTML = notes.map(function(n, i){
-      var icon = i === 0
-        ? '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v5h1"/></svg>'
-        : '<svg class="ic" style="visibility:hidden" viewBox="0 0 24 24"></svg>';
-      return '<li>'+icon+'<span>'+esc(n)+'</span></li>';
-    }).join("");
+    document.getElementById("fareNotes").innerHTML = notes.map(function(n){ return '<li>'+esc(n)+'</li>'; }).join("");
   }
 
   function renderAllRoutes(){
@@ -485,7 +530,7 @@ footer.site-foot{background:var(--sand-soft);border-top:1px solid var(--line);pa
       notes = (data && data.notes) || [];
       if(!routes.length){
         fromSel.innerHTML = toSel.innerHTML = "<option>—</option>";
-        fareArea.innerHTML = '<div class="state-msg">Taxi fares are being updated. Please contact us on WhatsApp for a quote.</div>';
+        vehGrid.innerHTML = '<div class="state-msg">Taxi fares are being updated. Please contact us on WhatsApp for a quote.</div>';
         return;
       }
       buildGraph();
@@ -498,13 +543,31 @@ footer.site-foot{background:var(--sand-soft);border-top:1px solid var(--line);pa
     }).catch(function(){
       // keep the pre-rendered fallback row visible, but tell the visitor fares may be stale
       fromSel.innerHTML = toSel.innerHTML = "<option>—</option>";
-      fareArea.insertAdjacentHTML("beforeend", '<div class="state-msg err" style="margin-top:12px;">Could not load live fares right now. Please refresh in a moment or chat with us on WhatsApp.</div>');
+      vehGrid.insertAdjacentHTML("beforeend", '<div class="state-msg err">Could not load live fares right now. Please refresh in a moment or chat with us on WhatsApp.</div>');
     });
   }
 
   fromSel.addEventListener("change", function(){ fillTo(null); calculate(); });
   toSel.addEventListener("change", function(){ calculate(); });
   document.getElementById("calcBtn").addEventListener("click", function(){ calculate(); });
+  vehGrid.addEventListener("click", function(e){
+    var card = e.target.closest("[data-veh]");
+    if(!card) return;
+    selectedVehicle = card.getAttribute("data-veh");
+    vehGrid.querySelectorAll(".veh-card").forEach(function(c){
+      var on = c.getAttribute("data-veh") === selectedVehicle;
+      c.classList.toggle("sel", on); c.setAttribute("aria-pressed", on);
+    });
+    var node = graph[key(fromSel.value)], hit = node && node.to[key(toSel.value)];
+    setWhatsApp(fromSel.value, toSel.value, hit ? hit.route : null);
+    track("taxi_vehicle_selected", { vehicle: selectedVehicle });
+  });
+  dateInput.min = todayISO();
+  dateInput.value = todayISO();
+  dateInput.addEventListener("change", function(){
+    var node = graph[key(fromSel.value)], hit = node && node.to[key(toSel.value)];
+    setWhatsApp(fromSel.value, toSel.value, hit ? hit.route : null);
+  });
   document.getElementById("waBtn").addEventListener("click", function(){
     track("whatsapp_click", { page: "taxi_fare_calculator", from: fromSel.value, to: toSel.value });
   });
